@@ -253,11 +253,22 @@
         historyListEl.innerHTML = data.items.length === 0
           ? '<li class="text-base-content/70">No history yet.</li>'
           : data.items.map(item =>
-              `<li class="card bg-base-200 border border-base-300 p-4">
+              `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
                 <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
               </li>`
             ).join('');
+        document.querySelectorAll('.history-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const prompt = el.getAttribute('data-prompt');
+            if (prompt) {
+              promptInput.value = prompt;
+              historySection.classList.add('hidden');
+              analyzeSection.classList.remove('hidden');
+              promptInput.focus();
+            }
+          });
+        });
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
       }
@@ -350,6 +361,11 @@
       const div = document.createElement('div');
       div.textContent = s;
       return div.innerHTML;
+    }
+    function escapeAttr(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML.replace(/"/g, '&quot;');
     }
   </script>
 </body>

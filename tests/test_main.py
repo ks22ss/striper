@@ -34,6 +34,15 @@ def test_root_serves_ui():
     )
 
 
+def test_root_ui_includes_reanalyze_from_history():
+    """Root UI includes re-analyze-from-history feature when serving HTML."""
+    r = client.get("/")
+    assert r.status_code == 200
+    if "text/html" in r.headers.get("content-type", ""):
+        assert "Click to re-analyze" in r.text
+        assert "history-item" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
