@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,10 +21,13 @@
         <h1 class="text-2xl font-semibold tracking-tight">Striper</h1>
         <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
       </div>
-      <div id="auth-section" class="flex items-center gap-2">
-        <span class="text-sm text-base-content/70" id="user-info"></span>
+      <div class="flex items-center gap-2">
+        <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme"></button>
+        <div id="auth-section" class="flex items-center gap-2">
+          <span class="text-sm text-base-content/70" id="user-info"></span>
         <button type="button" class="btn btn-ghost btn-sm hidden" id="history-btn">History</button>
         <button type="button" class="btn btn-ghost btn-sm hidden" id="logout-btn">Logout</button>
+        </div>
       </div>
     </header>
 
@@ -122,6 +125,23 @@
   <script>
     const AUTH_KEY = 'striper_token';
     const USER_KEY = 'striper_user';
+    const THEME_KEY = 'striper_theme';
+
+    function getStoredTheme() {
+      return localStorage.getItem(THEME_KEY) || 'dark';
+    }
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem(THEME_KEY, theme);
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = theme === 'dark' ? '\u2600' : '\u263E';
+    }
+    function initTheme() {
+      const theme = getStoredTheme();
+      document.documentElement.setAttribute('data-theme', theme);
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = theme === 'dark' ? '\u2600' : '\u263E';
+    }
 
     const authFormSection = document.getElementById('auth-form-section');
     const analyzeSection = document.getElementById('analyze-section');
@@ -180,6 +200,12 @@
       historyBtn.classList.add('hidden');
       logoutBtn.classList.add('hidden');
     }
+
+    initTheme();
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      const next = getStoredTheme() === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+    });
 
     if (localStorage.getItem(AUTH_KEY)) {
       const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
@@ -266,6 +292,15 @@
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
+    });
+
+    [promptInput, inputField].forEach(el => {
+      el.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          if (promptInput.value.trim()) form.requestSubmit();
+        }
+      });
     });
 
     form.addEventListener('submit', async (e) => {
