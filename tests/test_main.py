@@ -166,6 +166,29 @@ def test_history_success():
         app.dependency_overrides.pop(get_current_user, None)
 
 
+def test_history_limit_bounds_reject_invalid():
+    """History rejects limit outside [1, 100] to prevent DoS (SQLite LIMIT -1 = no limit)."""
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        for invalid_limit in (-1, 0, 101, 999):
+            r = client.get(f"/history?limit={invalid_limit}")
+            assert r.status_code == 422, f"limit={invalid_limit} should be rejected"
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_history_limit_bounds_accept_valid():
+    """History accepts limit within [1, 100] and passes to get_prompt_history."""
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        with patch("app.main.get_prompt_history", return_value=[]) as mock_get:
+            r = client.get("/history?limit=1")
+        assert r.status_code == 200
+        mock_get.assert_called_once_with(1, limit=1)
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
 def test_analyze_with_optional_input():
     """Analyze endpoint accepts optional input and passes it to stripe analysis."""
     mock_result = {
