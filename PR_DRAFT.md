@@ -17,6 +17,13 @@ maint: fix history limit, whitespace prompts, invalid API key + small cleanup
 2. **Reject whitespace-only prompts** – Added `prompt_not_whitespace_only` validator on `AnalyzeRequest`; returns 422 with clear message.
 3. **Handle AuthenticationError** – Added `except AuthenticationError` before generic `Exception`; returns 503 with error message.
 
+### Reproduction (before fix)
+| Bug | Steps | Before |
+|-----|-------|--------|
+| History limit | `GET /history?limit=999999` | Unbounded DB query |
+| Whitespace prompt | `POST /analyze` with `{"prompt": "   \t  "}` | 200 with score 0 |
+| Invalid API key | `POST /analyze` with `{"prompt": "x", "api_key": "sk-invalid"}` | 500 instead of 503 |
+
 ### Refactor
 - Extracted `HISTORY_MAX_LIMIT = 100` and `_clamp_history_limit()` for clarity and reuse.
 - Use `status.HTTP_503_SERVICE_UNAVAILABLE` instead of magic number 503 for API key errors.
