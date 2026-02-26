@@ -166,6 +166,32 @@ def test_history_success():
         app.dependency_overrides.pop(get_current_user, None)
 
 
+def test_history_items_include_full_prompt_for_use_feature():
+    """History items include full prompt so frontend can load it for re-analysis."""
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    long_prompt = "You are a helpful assistant. " * 10
+    try:
+        with patch(
+            "app.main.get_prompt_history",
+            return_value=[
+                {
+                    "id": 1,
+                    "prompt": long_prompt,
+                    "over_engineered_score": 0.5,
+                    "improved_prompt": "You are a helpful assistant.",
+                    "created_at": "2026-02-26 10:00:00",
+                },
+            ],
+        ):
+            r = client.get("/history")
+        assert r.status_code == 200
+        item = r.json()["items"][0]
+        assert item["prompt"] == long_prompt
+        assert item["improved_prompt"] == "You are a helpful assistant."
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
 def test_analyze_with_optional_input():
     """Analyze endpoint accepts optional input and passes it to stripe analysis."""
     mock_result = {
