@@ -54,6 +54,15 @@ def test_ui_has_history_toggle_structure():
     assert "history-section" in body
 
 
+def test_ui_has_use_prompt_from_history():
+    """UI contains Use button and data-use-index for loading prompts from history."""
+    r = client.get("/")
+    assert r.status_code == 200
+    body = r.text
+    assert "data-use-index" in body
+    assert '>Use</button>' in body or ">Use</button>" in body
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

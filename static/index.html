@@ -130,6 +130,7 @@
     const formAndResultsEl = document.getElementById('form-and-results');
     const historySection = document.getElementById('history-section');
     const historyListEl = document.getElementById('history-list');
+    let historyItems = [];
     const userInfoEl = document.getElementById('user-info');
     const historyBtn = document.getElementById('history-btn');
     const logoutBtn = document.getElementById('logout-btn');
@@ -246,19 +247,21 @@
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
     historyBtn.addEventListener('click', async () => {
-      analyzeSection.classList.add('hidden');
+      formAndResultsEl.classList.add('hidden');
       historySection.classList.remove('hidden');
       historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
       try {
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+        historyItems = data.items;
         historyListEl.innerHTML = data.items.length === 0
           ? '<li class="text-base-content/70">No history yet.</li>'
-          : data.items.map(item =>
+          : data.items.map((item, i) =>
               `<li class="card bg-base-200 border border-base-300 p-4">
                 <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+                <p class="text-xs text-base-content/60 mb-2">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+                <button type="button" class="btn btn-ghost btn-xs" data-use-index="${i}">Use</button>
               </li>`
             ).join('');
       } catch (err) {
@@ -267,6 +270,17 @@
     });
 
     document.getElementById('history-back').addEventListener('click', () => {
+      historySection.classList.add('hidden');
+      formAndResultsEl.classList.remove('hidden');
+    });
+
+    historyListEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-use-index]');
+      if (!btn) return;
+      const idx = parseInt(btn.dataset.useIndex, 10);
+      const item = historyItems[idx];
+      if (!item) return;
+      promptInput.value = item.prompt;
       historySection.classList.add('hidden');
       formAndResultsEl.classList.remove('hidden');
     });
