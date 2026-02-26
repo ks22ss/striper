@@ -1,6 +1,6 @@
 """Pydantic schemas for API request/response."""
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class AnalyzeRequest(BaseModel):
@@ -11,6 +11,18 @@ class AnalyzeRequest(BaseModel):
         default=None,
         description="Optional input text that the prompt will process (e.g. sample user message)",
     )
+    api_key: str | None = Field(
+        default=None,
+        description="Optional OpenAI API key. If not provided, OPENAI_API_KEY env var is used.",
+    )
+
+    @field_validator("api_key", mode="before")
+    @classmethod
+    def empty_api_key_to_none(cls, v: str | None) -> str | None:
+        """Treat empty or whitespace-only api_key as None."""
+        if v is None:
+            return None
+        return v.strip() or None
 
 
 class AnalyzeResponse(BaseModel):

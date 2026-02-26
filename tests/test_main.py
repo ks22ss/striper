@@ -189,7 +189,56 @@ def test_analyze_with_optional_input():
             )
         assert r.status_code == 200
         mock_run.assert_called_once_with(
-            "Summarize briefly.", "This is a long document about AI and machine learning."
+            "Summarize briefly.",
+            user_input="This is a long document about AI and machine learning.",
+            api_key=None,
         )
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_analyze_with_api_key_in_request():
+    """Analyze passes api_key from request to stripe analysis."""
+    mock_result = {
+        "over_engineered_score": 0.0,
+        "improved_prompt": "Test.",
+        "components_removed": [],
+        "components_kept": ["Test."],
+        "total_components": 1,
+    }
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run, patch(
+            "app.main.add_prompt_history"
+        ):
+            r = client.post(
+                "/analyze",
+                json={"prompt": "Test.", "api_key": "sk-user-provided-key"},
+            )
+        assert r.status_code == 200
+        mock_run.assert_called_once_with(
+            "Test.", user_input=None, api_key="sk-user-provided-key"
+        )
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_analyze_empty_api_key_treated_as_none():
+    """Empty or whitespace api_key is treated as None (uses env fallback)."""
+    mock_result = {
+        "over_engineered_score": 0.0,
+        "improved_prompt": "Test.",
+        "components_removed": [],
+        "components_kept": ["Test."],
+        "total_components": 1,
+    }
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run, patch(
+            "app.main.add_prompt_history"
+        ):
+            r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
+        assert r.status_code == 200
+        mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
     finally:
         app.dependency_overrides.pop(get_current_user, None)

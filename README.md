@@ -34,13 +34,12 @@ Open http://127.0.0.1:8000 in your browser.
 
 ## API
 
-- `GET /` – Serves the UI
-- `POST /analyze` – Body: `{"prompt": "...", "input": "..."}` (input optional) → Returns score, improved prompt, component breakdown
+- `POST /analyze` – Body: `{"prompt": "...", "input": "...", "api_key": "sk-..."}` (input and api_key optional) → Returns score, improved prompt, component breakdown
 - `GET /health` – Health check
 
 ## UI
 
-Paste a prompt, optionally add sample input text the prompt will process, click **Analyze**, and view the over-engineered score, improved prompt, and component breakdown (kept vs removed).
+Paste a prompt, optionally add sample input text the prompt will process, optionally enter an OpenAI API key (uses server config if blank), click **Analyze**, and view the over-engineered score, improved prompt, and component breakdown (kept vs removed).
 
 ## Project structure
 

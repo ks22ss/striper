@@ -62,23 +62,6 @@ def _build_analysis_result(
     }
 
 
-def _build_analysis_result(
-    over_engineered_score: float,
-    improved_prompt: str,
-    components_removed: list[str],
-    components_kept: list[str],
-    total_components: int,
-) -> dict:
-    """Build the standardized analysis result dict."""
-    return {
-        "over_engineered_score": round(over_engineered_score, 2),
-        "improved_prompt": improved_prompt,
-        "components_removed": components_removed,
-        "components_kept": components_kept,
-        "total_components": total_components,
-    }
-
-
 def _classify_components(
     components: list[str], redundant_indices: set[int]
 ) -> tuple[list[str], list[str]]:
@@ -93,6 +76,7 @@ def _is_component_redundant(
     index: int,
     baseline_embedding: list[float],
     user_input: str | None = None,
+    api_key: str | None = None,
 ) -> bool:
     """
     Check if removing the component at index yields output similar to baseline.
@@ -101,8 +85,8 @@ def _is_component_redundant(
     stripped_components = components[:index] + components[index + 1 :]
     stripped_prompt = " ".join(stripped_components)
     stripped_full = _build_full_prompt(stripped_prompt, user_input)
-    stripped_output = call_model(stripped_full)
-    stripped_embedding = get_embedding(stripped_output)
+    stripped_output = call_model(stripped_full, api_key=api_key)
+    stripped_embedding = get_embedding(stripped_output, api_key=api_key)
     sim = cosine_similarity(baseline_embedding, stripped_embedding)
     return sim >= _get_similarity_threshold()
 
@@ -131,23 +115,30 @@ def parse_components(prompt: str) -> list[str]:
     return components
 
 
-def run_stripe_analysis(prompt: str, user_input: str | None = None) -> dict:
+def run_stripe_analysis(
+    prompt: str,
+    user_input: str | None = None,
+    api_key: str | None = None,
+) -> dict:
     """
     Run the Stripe method analysis.
     Returns dict with over_engineered_score, improved_prompt, components_removed, components_kept.
     user_input: optional text that the prompt will process (e.g. sample user message).
+    api_key: optional OpenAI API key; if not provided, OPENAI_API_KEY env var is used.
     """
     components = parse_components(prompt)
     if not components:
         return _build_analysis_result(0.0, prompt, [], [], 0)
 
     full_prompt = _build_full_prompt(prompt, user_input)
-    baseline_output = call_model(full_prompt)
-    baseline_embedding = get_embedding(baseline_output)
+    baseline_output = call_model(full_prompt, api_key=api_key)
+    baseline_embedding = get_embedding(baseline_output, api_key=api_key)
 
     redundant_indices: set[int] = set()
     for i in range(len(components)):
-        if _is_component_redundant(components, i, baseline_embedding, user_input):
+        if _is_component_redundant(
+            components, i, baseline_embedding, user_input=user_input, api_key=api_key
+        ):
             redundant_indices.add(i)
 
     components_kept, components_removed = _classify_components(components, redundant_indices)

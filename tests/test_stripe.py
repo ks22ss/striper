@@ -118,7 +118,7 @@ def test_run_stripe_analysis_rounds_score():
     ]
     call_count = 0
 
-    def mock_get_embedding(_text):
+    def mock_get_embedding(_text, **kwargs):
         nonlocal call_count
         result = embeddings[call_count]
         call_count += 1
@@ -138,7 +138,7 @@ def test_run_stripe_analysis_with_input_passes_to_model():
     """run_stripe_analysis with user_input includes it in the prompt sent to the model."""
     captured_prompts = []
 
-    def capture_prompt(prompt):
+    def capture_prompt(prompt, **kwargs):
         captured_prompts.append(prompt)
         return "sample output"
 
@@ -164,7 +164,7 @@ def test_run_stripe_analysis_with_mocked_openai():
     ]
     call_count = 0
 
-    def mock_get_embedding(_text):
+    def mock_get_embedding(_text, **kwargs):
         nonlocal call_count
         result = embeddings[call_count]
         call_count += 1
@@ -193,7 +193,7 @@ def test_run_stripe_analysis_respects_similarity_threshold_env():
     ]
     call_count = 0
 
-    def mock_get_embedding(_text):
+    def mock_get_embedding(_text, **kwargs):
         nonlocal call_count
         result = embeddings[call_count]
         call_count += 1
@@ -210,3 +210,16 @@ def test_run_stripe_analysis_respects_similarity_threshold_env():
     assert result["over_engineered_score"] == 0.0
     assert result["components_removed"] == []
     assert result["components_kept"] == ["A.", "B."]
+
+
+def test_run_stripe_analysis_with_api_key_passes_through():
+    """run_stripe_analysis passes api_key to call_model and get_embedding."""
+    with (
+        patch("app.stripe.call_model", return_value="output") as mock_call,
+        patch("app.stripe.get_embedding", return_value=[1.0, 0.0, 0.0]),
+    ):
+        run_stripe_analysis("Test.", api_key="sk-user-key")
+
+    assert mock_call.call_count >= 1
+    for call in mock_call.call_args_list:
+        assert call.kwargs.get("api_key") == "sk-user-key"
