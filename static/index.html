@@ -1,272 +1,64 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Striper – Prompt Over-Engineering Analyzer</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --bg: #0d1117;
-      --surface: #161b22;
-      --border: #30363d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --accent: #58a6ff;
-      --success: #3fb950;
-      --warning: #d29922;
-      --danger: #f85149;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: 'Outfit', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      line-height: 1.6;
-    }
-
-    .container {
-      max-width: 720px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
-    }
-
-    header {
-      margin-bottom: 2rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 1.5rem;
-    }
-
-    h1 {
-      font-size: 1.75rem;
-      font-weight: 600;
-      margin: 0 0 0.25rem 0;
-      letter-spacing: -0.02em;
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 0.95rem;
-    }
-
-    label {
-      display: block;
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 160px;
-      padding: 1rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      resize: vertical;
-      transition: border-color 0.2s;
-    }
-
-    textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    textarea::placeholder {
-      color: var(--muted);
-    }
-
-    .actions {
-      margin-top: 1rem;
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-    }
-
-    button {
-      font-family: inherit;
-      font-weight: 500;
-      font-size: 0.95rem;
-      padding: 0.6rem 1.25rem;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s, opacity 0.2s;
-    }
-
-    button.primary {
-      background: var(--accent);
-      color: var(--bg);
-    }
-
-    button.primary:hover:not(:disabled) {
-      background: #79b8ff;
-    }
-
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .status {
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-
-    .status.loading {
-      color: var(--accent);
-    }
-
-    .status.error {
-      color: var(--danger);
-    }
-
-    .results {
-      margin-top: 2rem;
-      display: none;
-    }
-
-    .results.visible {
-      display: block;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
-      margin-bottom: 1rem;
-    }
-
-    .card h3 {
-      font-size: 0.85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-      margin: 0 0 0.75rem 0;
-    }
-
-    .score-bar {
-      height: 8px;
-      background: var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 0.5rem;
-    }
-
-    .score-fill {
-      height: 100%;
-      border-radius: 4px;
-      transition: width 0.5s ease;
-    }
-
-    .score-fill.low { background: var(--success); }
-    .score-fill.medium { background: var(--warning); }
-    .score-fill.high { background: var(--danger); }
-
-    .score-label {
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
-
-    .improved-prompt {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.9rem;
-      white-space: pre-wrap;
-      word-break: break-word;
-      padding: 1rem;
-      background: var(--bg);
-      border-radius: 6px;
-      border: 1px solid var(--border);
-    }
-
-    .component-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .component-list li {
-      padding: 0.4rem 0;
-      font-size: 0.9rem;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-    }
-
-    .component-list li:last-child {
-      border-bottom: none;
-    }
-
-    .component-list .badge {
-      font-size: 0.7rem;
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      flex-shrink: 0;
-    }
-
-    .badge.kept {
-      background: rgba(63, 185, 80, 0.2);
-      color: var(--success);
-    }
-
-    .badge.removed {
-      background: rgba(248, 81, 73, 0.2);
-      color: var(--danger);
-    }
+    body { font-family: 'Outfit', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
   </style>
 </head>
-<body>
-  <div class="container">
-    <header>
-      <h1>Striper</h1>
-      <p class="subtitle">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
+<body class="min-h-screen bg-base-100 text-base-content">
+  <div class="max-w-3xl mx-auto px-6 py-8">
+    <header class="mb-8 pb-6 border-b border-base-300">
+      <h1 class="text-2xl font-semibold tracking-tight">Striper</h1>
+      <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
     </header>
 
     <form id="analyze-form">
-      <label for="prompt">Your prompt</label>
+      <label for="prompt" class="label">
+        <span class="label-text font-medium">Your prompt</span>
+      </label>
       <textarea
         id="prompt"
         name="prompt"
+        class="textarea textarea-bordered w-full min-h-[160px] font-mono text-sm resize-y"
         placeholder="e.g. You are a helpful assistant. Always be concise. Use bullet points. Respond in JSON format. Never use markdown."
         required
       ></textarea>
-      <div class="actions">
-        <button type="submit" class="primary" id="submit-btn">Analyze</button>
-        <span class="status" id="status"></span>
+      <div class="flex gap-3 items-center mt-4">
+        <button type="submit" class="btn btn-primary" id="submit-btn">Analyze</button>
+        <span class="text-sm text-base-content/70" id="status"></span>
       </div>
     </form>
 
-    <section class="results" id="results">
-      <div class="card">
-        <h3>Over-engineered score</h3>
-        <div class="score-bar">
-          <div class="score-fill" id="score-fill"></div>
+    <section class="mt-8 hidden" id="results">
+      <div class="card bg-base-200 border border-base-300 mb-4">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered score</h3>
+          <progress id="score-progress" class="progress w-full h-2" value="0" max="100"></progress>
+          <p class="text-sm text-base-content/70 mt-2" id="score-label">0% – prompt is optimal</p>
         </div>
-        <p class="score-label" id="score-label">0% – prompt is optimal</p>
       </div>
 
-      <div class="card">
-        <h3>Improved prompt</h3>
-        <div class="improved-prompt" id="improved-prompt"></div>
+      <div class="card bg-base-200 border border-base-300 mb-4">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Improved prompt</h3>
+          <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
+        </div>
       </div>
 
-      <div class="card">
-        <h3>Components</h3>
-        <ul class="component-list" id="components"></ul>
+      <div class="card bg-base-200 border border-base-300 mb-4">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Components</h3>
+          <ul class="space-y-0 divide-y divide-base-300" id="components"></ul>
+        </div>
       </div>
     </section>
   </div>
@@ -277,7 +69,7 @@
     const submitBtn = document.getElementById('submit-btn');
     const statusEl = document.getElementById('status');
     const resultsEl = document.getElementById('results');
-    const scoreFill = document.getElementById('score-fill');
+    const scoreProgress = document.getElementById('score-progress');
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
@@ -289,8 +81,8 @@
 
       submitBtn.disabled = true;
       statusEl.textContent = 'Analyzing...';
-      statusEl.className = 'status loading';
-      resultsEl.classList.remove('visible');
+      statusEl.className = 'text-sm text-primary';
+      resultsEl.classList.add('hidden');
 
       try {
         const res = await fetch('/analyze', {
@@ -307,9 +99,14 @@
 
         // Score
         const score = data.over_engineered_score;
-        scoreFill.style.width = (score * 100) + '%';
-        scoreFill.className = 'score-fill ' + (score < 0.33 ? 'low' : score < 0.66 ? 'medium' : 'high');
-        scoreLabel.textContent = (score * 100).toFixed(0) + '% – ' + (
+        const pct = Math.round(score * 100);
+        scoreProgress.value = pct;
+        scoreProgress.className = 'progress w-full h-2 ' + (
+          score < 0.33 ? 'progress-success' :
+          score < 0.66 ? 'progress-warning' :
+          'progress-error'
+        );
+        scoreLabel.textContent = pct + '% – ' + (
           score < 0.33 ? 'prompt is fairly optimal' :
           score < 0.66 ? 'some redundancy detected' :
           'prompt is over-engineered'
@@ -327,15 +124,18 @@
           items.push({ text: c, type: 'removed' });
         });
         componentsEl.innerHTML = items.map(({ text, type }) =>
-          `<li><span class="badge ${type}">${type}</span>${escapeHtml(text)}</li>`
+          `<li class="flex items-start gap-2 py-3 text-sm">
+            <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+            <span>${escapeHtml(text)}</span>
+          </li>`
         ).join('');
 
-        resultsEl.classList.add('visible');
+        resultsEl.classList.remove('hidden');
         statusEl.textContent = 'Done';
-        statusEl.className = 'status';
+        statusEl.className = 'text-sm text-base-content/70';
       } catch (err) {
         statusEl.textContent = err.message || 'Error';
-        statusEl.className = 'status error';
+        statusEl.className = 'text-sm text-error';
       } finally {
         submitBtn.disabled = false;
       }
