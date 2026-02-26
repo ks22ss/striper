@@ -16,11 +16,38 @@
 </head>
 <body class="min-h-screen bg-base-100 text-base-content">
   <div class="max-w-3xl mx-auto px-6 py-8">
-    <header class="mb-8 pb-6 border-b border-base-300">
-      <h1 class="text-2xl font-semibold tracking-tight">Striper</h1>
-      <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
+    <header class="mb-8 pb-6 border-b border-base-300 flex justify-between items-start">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Striper</h1>
+        <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
+      </div>
+      <div id="auth-section" class="flex items-center gap-2">
+        <span class="text-sm text-base-content/70" id="user-info"></span>
+        <button type="button" class="btn btn-ghost btn-sm hidden" id="history-btn">History</button>
+        <button type="button" class="btn btn-ghost btn-sm hidden" id="logout-btn">Logout</button>
+      </div>
     </header>
 
+    <section id="auth-form-section" class="mb-8">
+      <div class="tabs tabs-boxed mb-4">
+        <a class="tab tab-active" data-tab="login">Login</a>
+        <a class="tab" data-tab="register">Register</a>
+      </div>
+      <form id="login-form" class="space-y-3 max-w-sm">
+        <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required />
+        <input type="password" name="password" placeholder="Password" class="input input-bordered w-full" required />
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+      <form id="register-form" class="space-y-3 max-w-sm hidden">
+        <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required minlength="2" />
+        <input type="email" name="email" placeholder="Email" class="input input-bordered w-full" required />
+        <input type="password" name="password" placeholder="Password (min 8 chars)" class="input input-bordered w-full" required minlength="8" />
+        <button type="submit" class="btn btn-primary">Register</button>
+      </form>
+      <p class="text-sm text-error mt-2 hidden" id="auth-error"></p>
+    </section>
+
+    <section id="analyze-section" class="hidden">
     <form id="analyze-form">
       <label for="prompt" class="label">
         <span class="label-text font-medium">Your prompt</span>
@@ -61,9 +88,29 @@
         </div>
       </div>
     </section>
+
+    <section id="history-section" class="mt-8 hidden">
+      <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
+      <ul class="space-y-2" id="history-list"></ul>
+      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back">Back</button>
+    </section>
+    </section>
   </div>
 
   <script>
+    const AUTH_KEY = 'striper_token';
+    const USER_KEY = 'striper_user';
+
+    const authFormSection = document.getElementById('auth-form-section');
+    const analyzeSection = document.getElementById('analyze-section');
+    const historySection = document.getElementById('history-section');
+    const historyListEl = document.getElementById('history-list');
+    const userInfoEl = document.getElementById('user-info');
+    const historyBtn = document.getElementById('history-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const authErrorEl = document.getElementById('auth-error');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
     const form = document.getElementById('analyze-form');
     const promptInput = document.getElementById('prompt');
     const submitBtn = document.getElementById('submit-btn');
@@ -73,6 +120,129 @@
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
+
+    function getAuthHeaders() {
+      const token = localStorage.getItem(AUTH_KEY);
+      const h = { 'Content-Type': 'application/json' };
+      if (token) h['Authorization'] = 'Bearer ' + token;
+      return h;
+    }
+
+    function showAuthError(msg) {
+      authErrorEl.textContent = msg;
+      authErrorEl.classList.remove('hidden');
+    }
+    function clearAuthError() {
+      authErrorEl.textContent = '';
+      authErrorEl.classList.add('hidden');
+    }
+
+    function setLoggedIn(user) {
+      localStorage.setItem(USER_KEY, JSON.stringify(user));
+      authFormSection.classList.add('hidden');
+      analyzeSection.classList.remove('hidden');
+      historySection.classList.add('hidden');
+      userInfoEl.textContent = user ? user.username : '';
+      historyBtn.classList.remove('hidden');
+      logoutBtn.classList.remove('hidden');
+    }
+    function setLoggedOut() {
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(USER_KEY);
+      authFormSection.classList.remove('hidden');
+      analyzeSection.classList.add('hidden');
+      historySection.classList.add('hidden');
+      userInfoEl.textContent = '';
+      historyBtn.classList.add('hidden');
+      logoutBtn.classList.add('hidden');
+    }
+
+    if (localStorage.getItem(AUTH_KEY)) {
+      const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
+      setLoggedIn(user);
+    } else {
+      setLoggedOut();
+    }
+
+    document.querySelectorAll('[data-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('tab-active'));
+        tab.classList.add('tab-active');
+        loginForm.classList.toggle('hidden', tab.dataset.tab !== 'login');
+        registerForm.classList.toggle('hidden', tab.dataset.tab !== 'register');
+        clearAuthError();
+      });
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAuthError();
+      const fd = new FormData(loginForm);
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Login failed');
+        localStorage.setItem(AUTH_KEY, data.access_token);
+        setLoggedIn(data.user);
+      } catch (err) {
+        showAuthError(err.message);
+      }
+    });
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAuthError();
+      const fd = new FormData(registerForm);
+      try {
+        const res = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: fd.get('username'),
+            email: fd.get('email'),
+            password: fd.get('password'),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Registration failed');
+        localStorage.setItem(AUTH_KEY, data.access_token);
+        setLoggedIn(data.user);
+      } catch (err) {
+        showAuthError(err.message);
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => { setLoggedOut(); });
+
+    historyBtn.addEventListener('click', async () => {
+      analyzeSection.classList.add('hidden');
+      historySection.classList.remove('hidden');
+      historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
+      try {
+        const res = await fetch('/history', { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+        historyListEl.innerHTML = data.items.length === 0
+          ? '<li class="text-base-content/70">No history yet.</li>'
+          : data.items.map(item =>
+              `<li class="card bg-base-200 border border-base-300 p-4">
+                <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
+                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+              </li>`
+            ).join('');
+      } catch (err) {
+        historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
+      }
+    });
+
+    document.getElementById('history-back').addEventListener('click', () => {
+      historySection.classList.add('hidden');
+      analyzeSection.classList.remove('hidden');
+    });
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -87,13 +257,17 @@
       try {
         const res = await fetch('/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ prompt }),
         });
 
         const data = await res.json();
 
         if (!res.ok) {
+          if (res.status === 401) {
+            setLoggedOut();
+            throw new Error('Session expired. Please log in again.');
+          }
           throw new Error(data.detail || 'Analysis failed');
         }
 
