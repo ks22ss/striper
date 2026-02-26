@@ -35,8 +35,10 @@ Open http://127.0.0.1:8000 in your browser.
 ## API
 
 - `GET /` – Serves the UI
-- `POST /analyze` – Body: `{"prompt": "..."}` → Returns score, improved prompt, component breakdown
+- `POST /analyze` – Body: `{"prompt": "...", "api_key": "sk-..."}` (api_key optional) → Returns score, improved prompt, component breakdown
 - `GET /health` – Health check
+
+**API key:** Use `OPENAI_API_KEY` in `.env`, or pass `api_key` in the request body. The UI includes an optional API key field; if provided, it overrides the server config.
 
 ## Project structure
 

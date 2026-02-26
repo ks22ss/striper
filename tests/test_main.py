@@ -49,3 +49,36 @@ def test_analyze_success():
     assert data["improved_prompt"] == "Be concise."
     assert "components_removed" in data
     assert "components_kept" in data
+
+
+def test_analyze_with_api_key_in_request():
+    """Analyze passes api_key from request to stripe analysis."""
+    mock_result = {
+        "over_engineered_score": 0.0,
+        "improved_prompt": "Test.",
+        "components_removed": [],
+        "components_kept": ["Test."],
+        "total_components": 1,
+    }
+    with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run:
+        r = client.post(
+            "/analyze",
+            json={"prompt": "Test.", "api_key": "sk-user-provided-key"},
+        )
+    assert r.status_code == 200
+    mock_run.assert_called_once_with("Test.", api_key="sk-user-provided-key")
+
+
+def test_analyze_empty_api_key_treated_as_none():
+    """Empty or whitespace api_key is treated as None (uses env fallback)."""
+    mock_result = {
+        "over_engineered_score": 0.0,
+        "improved_prompt": "Test.",
+        "components_removed": [],
+        "components_kept": ["Test."],
+        "total_components": 1,
+    }
+    with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run:
+        r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
+    assert r.status_code == 200
+    mock_run.assert_called_once_with("Test.", api_key=None)

@@ -86,7 +86,7 @@ def test_run_stripe_analysis_with_mocked_openai():
     ]
     call_count = 0
 
-    def mock_get_embedding(_text):
+    def mock_get_embedding(_text, **kwargs):
         nonlocal call_count
         result = embeddings[call_count]
         call_count += 1
@@ -102,3 +102,16 @@ def test_run_stripe_analysis_with_mocked_openai():
     assert result["components_removed"] == ["Be concise."]
     assert result["components_kept"] == ["Always use bullet points."]
     assert result["total_components"] == 2
+
+
+def test_run_stripe_analysis_with_api_key_passes_through():
+    """run_stripe_analysis passes api_key to call_model and get_embedding."""
+    with (
+        patch("app.stripe.call_model", return_value="output") as mock_call,
+        patch("app.stripe.get_embedding", return_value=[1.0, 0.0, 0.0]),
+    ):
+        run_stripe_analysis("Test.", api_key="sk-user-key")
+
+    assert mock_call.call_count >= 1
+    for call in mock_call.call_args_list:
+        assert call.kwargs.get("api_key") == "sk-user-key"
