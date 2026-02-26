@@ -1,6 +1,7 @@
 """OpenAI API client for model calls and embeddings."""
 
 import os
+
 from openai import OpenAI
 
 _client: OpenAI | None = None
@@ -23,7 +24,10 @@ def call_model(prompt: str, model: str = "gpt-4o-mini") -> str:
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": "You are a helpful assistant. Respond concisely to the user's prompt."},
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Respond concisely to the user's prompt.",
+            },
             {"role": "user", "content": prompt},
         ],
         max_tokens=500,
