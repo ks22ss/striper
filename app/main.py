@@ -121,10 +121,16 @@ async def analyze(
         return AnalyzeResponse(**result)
     except ValueError as e:
         if _is_api_key_error(e):
-            raise HTTPException(status_code=503, detail="OpenAI API key not configured")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="OpenAI API key not configured",
+            )
         raise HTTPException(status_code=400, detail=str(e))
     except AuthenticationError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
