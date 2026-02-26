@@ -48,6 +48,7 @@
     </section>
 
     <section id="analyze-section" class="hidden">
+    <div id="form-and-results">
     <form id="analyze-form">
       <label for="api-key" class="label">
         <span class="label-text font-medium">OpenAI API key</span>
@@ -110,6 +111,7 @@
         </div>
       </div>
     </section>
+    </div>
 
     <section id="history-section" class="mt-8 hidden">
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
@@ -125,6 +127,7 @@
 
     const authFormSection = document.getElementById('auth-form-section');
     const analyzeSection = document.getElementById('analyze-section');
+    const formAndResultsEl = document.getElementById('form-and-results');
     const historySection = document.getElementById('history-section');
     const historyListEl = document.getElementById('history-list');
     const userInfoEl = document.getElementById('user-info');
@@ -265,7 +268,7 @@
 
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
+      formAndResultsEl.classList.remove('hidden');
     });
 
     form.addEventListener('submit', async (e) => {

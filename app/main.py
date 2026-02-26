@@ -3,7 +3,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -129,7 +129,7 @@ async def analyze(
 @app.get("/history", response_model=PromptHistoryResponse)
 async def get_history(
     current_user: dict = Depends(get_current_user),
-    limit: int = 50,
+    limit: int = Query(50, ge=1, le=100),
 ):
     """Return the current user's prompt analysis history."""
     rows = get_prompt_history(current_user["id"], limit=limit)
