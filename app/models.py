@@ -7,6 +7,15 @@ class AnalyzeRequest(BaseModel):
     """Request body for prompt analysis."""
 
     prompt: str = Field(..., min_length=1, description="The prompt to analyze for over-engineering")
+
+    @field_validator("prompt")
+    @classmethod
+    def prompt_not_whitespace_only(cls, v: str) -> str:
+        """Reject prompts that are only whitespace."""
+        if not v or not v.strip():
+            raise ValueError("Prompt cannot be whitespace-only")
+        return v
+
     input: str | None = Field(
         default=None,
         description="Optional input text that the prompt will process (e.g. sample user message)",
