@@ -30,6 +30,22 @@ def _classify_components(
     return kept, removed
 
 
+def _is_component_redundant(
+    components: list[str], index: int, baseline_embedding: list[float]
+) -> bool:
+    """
+    Check if removing the component at index yields output similar to baseline.
+    Strips the component, calls model, compares embeddings.
+    """
+    stripped_components = components[:index] + components[index + 1 :]
+    stripped_prompt = " ".join(stripped_components)
+    stripped_full = _build_full_prompt(stripped_prompt)
+    stripped_output = call_model(stripped_full)
+    stripped_embedding = get_embedding(stripped_output)
+    sim = cosine_similarity(baseline_embedding, stripped_embedding)
+    return sim >= SIMILARITY_THRESHOLD
+
+
 def parse_components(prompt: str) -> list[str]:
     """
     Parse prompt into components (sentences/clauses).
@@ -74,15 +90,8 @@ def run_stripe_analysis(prompt: str) -> dict:
     baseline_embedding = get_embedding(baseline_output)
 
     redundant_indices: set[int] = set()
-
     for i in range(len(components)):
-        stripped_components = components[:i] + components[i + 1 :]
-        stripped_prompt = " ".join(stripped_components)
-        stripped_full = _build_full_prompt(stripped_prompt)
-        stripped_output = call_model(stripped_full)
-        stripped_embedding = get_embedding(stripped_output)
-        sim = cosine_similarity(baseline_embedding, stripped_embedding)
-        if sim >= SIMILARITY_THRESHOLD:
+        if _is_component_redundant(components, i, baseline_embedding):
             redundant_indices.add(i)
 
     components_kept, components_removed = _classify_components(components, redundant_indices)
