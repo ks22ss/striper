@@ -16,6 +16,14 @@ class AnalyzeRequest(BaseModel):
         description="Optional OpenAI API key. If not provided, OPENAI_API_KEY env var is used.",
     )
 
+    @field_validator("prompt")
+    @classmethod
+    def prompt_not_whitespace_only(cls, v: str) -> str:
+        """Reject prompts that are only whitespace."""
+        if not v or not v.strip():
+            raise ValueError("Prompt cannot be whitespace-only")
+        return v
+
     @field_validator("api_key", mode="before")
     @classmethod
     def empty_api_key_to_none(cls, v: str | None) -> str | None:
