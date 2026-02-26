@@ -34,6 +34,15 @@ def test_root_serves_ui():
     )
 
 
+def test_ui_includes_clear_button():
+    """UI includes Clear button for form reset."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert 'id="clear-btn"' in html
+    assert "Clear" in html
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

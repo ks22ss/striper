@@ -83,6 +83,7 @@
       ></textarea>
       <div class="flex gap-3 items-center mt-4">
         <button type="submit" class="btn btn-primary" id="submit-btn">Analyze</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="clear-btn">Clear</button>
         <span class="text-sm text-base-content/70" id="status"></span>
       </div>
     </form>
@@ -138,6 +139,7 @@
     const promptInput = document.getElementById('prompt');
     const inputField = document.getElementById('input');
     const submitBtn = document.getElementById('submit-btn');
+    const clearBtn = document.getElementById('clear-btn');
     const statusEl = document.getElementById('status');
     const resultsEl = document.getElementById('results');
     const scoreProgress = document.getElementById('score-progress');
@@ -241,6 +243,17 @@
     });
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
+
+    clearBtn.addEventListener('click', () => {
+      promptInput.value = '';
+      inputField.value = '';
+      apiKeyInput.value = '';
+      updatePromptCount();
+      resultsEl.classList.add('hidden');
+      statusEl.textContent = '';
+      statusEl.className = 'text-sm text-base-content/70';
+      promptInput.focus();
+    });
 
     historyBtn.addEventListener('click', async () => {
       analyzeSection.classList.add('hidden');
