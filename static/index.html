@@ -161,6 +161,13 @@
       authErrorEl.classList.add('hidden');
     }
 
+    function checkUnauthorized(res, data) {
+      if (res.status === 401) {
+        setLoggedOut();
+        throw new Error('Session expired. Please log in again.');
+      }
+    }
+
     function setLoggedIn(user) {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       authFormSection.classList.add('hidden');
@@ -249,7 +256,10 @@
       try {
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+        if (!res.ok) {
+          checkUnauthorized(res, data);
+          throw new Error(data.detail || 'Failed to load history');
+        }
         historyListEl.innerHTML = data.items.length === 0
           ? '<li class="text-base-content/70">No history yet.</li>'
           : data.items.map(item =>
@@ -295,10 +305,7 @@
         const data = await res.json();
 
         if (!res.ok) {
-          if (res.status === 401) {
-            setLoggedOut();
-            throw new Error('Session expired. Please log in again.');
-          }
+          checkUnauthorized(res, data);
           throw new Error(data.detail || 'Analysis failed');
         }
 

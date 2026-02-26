@@ -34,6 +34,15 @@ def test_root_serves_ui():
     )
 
 
+def test_ui_handles_history_401():
+    """UI includes 401 handling for history fetch (logs user out on expired token)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "checkUnauthorized" in html
+    assert "Session expired" in html
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
@@ -240,5 +249,28 @@ def test_analyze_empty_api_key_treated_as_none():
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
         assert r.status_code == 200
         mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_analyze_returns_result_when_history_save_fails():
+    """Analysis result is returned even when add_prompt_history raises (e.g. DB error)."""
+    mock_result = {
+        "over_engineered_score": 0.5,
+        "improved_prompt": "Be concise.",
+        "components_removed": ["Always use bullets."],
+        "components_kept": ["Be concise."],
+        "total_components": 2,
+    }
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        with patch("app.main.run_stripe_analysis", return_value=mock_result), patch(
+            "app.main.add_prompt_history", side_effect=Exception("DB disk full")
+        ):
+            r = client.post("/analyze", json={"prompt": "Be concise. Always use bullets."})
+        assert r.status_code == 200
+        data = r.json()
+        assert data["over_engineered_score"] == 0.5
+        assert data["improved_prompt"] == "Be concise."
     finally:
         app.dependency_overrides.pop(get_current_user, None)
