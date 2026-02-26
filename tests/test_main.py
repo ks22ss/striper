@@ -242,3 +242,12 @@ def test_analyze_empty_api_key_treated_as_none():
         mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_ui_includes_copy_from_history_button():
+    """UI includes copy button markup for history items (copy-from-history feature)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "copy-history-btn" in html
+    assert "Copy" in html

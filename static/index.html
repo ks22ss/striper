@@ -145,6 +145,8 @@
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
 
+    let lastHistoryItems = [];
+
     function getAuthHeaders() {
       const token = localStorage.getItem(AUTH_KEY);
       const h = { 'Content-Type': 'application/json' };
@@ -250,16 +252,43 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        historyListEl.innerHTML = data.items.length === 0
+        lastHistoryItems = data.items || [];
+        historyListEl.innerHTML = lastHistoryItems.length === 0
           ? '<li class="text-base-content/70">No history yet.</li>'
-          : data.items.map(item =>
+          : lastHistoryItems.map((item, i) =>
               `<li class="card bg-base-200 border border-base-300 p-4">
-                <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+                <div class="flex justify-between items-start gap-2">
+                  <div class="min-w-0 flex-1">
+                    <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
+                    <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+                  </div>
+                  <div class="flex gap-1 shrink-0">
+                    <button type="button" class="btn btn-ghost btn-xs use-history-btn" data-index="${i}" title="Use this prompt">Use</button>
+                    <button type="button" class="btn btn-ghost btn-xs copy-history-btn" data-index="${i}" title="Copy improved prompt">Copy</button>
+                  </div>
+                </div>
               </li>`
             ).join('');
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
+      }
+    });
+
+    historyListEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.copy-history-btn');
+      if (!btn) return;
+      const i = parseInt(btn.dataset.index, 10);
+      const item = lastHistoryItems[i];
+      if (!item?.improved_prompt) return;
+      try {
+        await navigator.clipboard.writeText(item.improved_prompt);
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.disabled = true;
+        setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+      } catch (err) {
+        btn.textContent = 'Failed';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
       }
     });
 
