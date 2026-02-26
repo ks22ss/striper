@@ -18,9 +18,14 @@ def get_client() -> OpenAI:
     return _client
 
 
-def call_model(prompt: str, model: str = "gpt-4o-mini") -> str:
+def _resolve_client(api_key: str | None) -> OpenAI:
+    """Use provided API key or fall back to env-configured client."""
+    return OpenAI(api_key=api_key) if api_key else get_client()
+
+
+def call_model(prompt: str, model: str = "gpt-4o-mini", api_key: str | None = None) -> str:
     """Call the model with a prompt and return the response text."""
-    client = get_client()
+    client = _resolve_client(api_key)
     response = client.chat.completions.create(
         model=model,
         messages=[
@@ -35,9 +40,11 @@ def call_model(prompt: str, model: str = "gpt-4o-mini") -> str:
     return response.choices[0].message.content or ""
 
 
-def get_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:
+def get_embedding(
+    text: str, model: str = "text-embedding-3-small", api_key: str | None = None
+) -> list[float]:
     """Get embedding vector for text."""
-    client = get_client()
+    client = _resolve_client(api_key)
     response = client.embeddings.create(
         model=model,
         input=text,
