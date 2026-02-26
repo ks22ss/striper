@@ -84,6 +84,7 @@
       <div class="flex gap-3 items-center mt-4">
         <button type="submit" class="btn btn-primary" id="submit-btn">Analyze</button>
         <span class="text-sm text-base-content/70" id="status"></span>
+        <span class="label-text-alt text-base-content/50 ml-auto">Ctrl+Enter to submit</span>
       </div>
     </form>
 
@@ -98,7 +99,12 @@
 
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Improved prompt</h3>
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
+            <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">
+              <span id="copy-btn-text">Copy</span>
+            </button>
+          </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
       </div>
@@ -144,6 +150,8 @@
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
+    const copyImprovedBtn = document.getElementById('copy-improved-btn');
+    const copyBtnText = document.getElementById('copy-btn-text');
 
     function getAuthHeaders() {
       const token = localStorage.getItem(AUTH_KEY);
@@ -267,6 +275,30 @@
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
     });
+
+    copyImprovedBtn.addEventListener('click', async () => {
+      const text = improvedPromptEl.textContent || '';
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtnText.textContent = 'Copied!';
+        setTimeout(() => { copyBtnText.textContent = 'Copy'; }, 2000);
+      } catch (err) {
+        copyBtnText.textContent = 'Failed';
+        setTimeout(() => { copyBtnText.textContent = 'Copy'; }, 2000);
+      }
+    });
+
+    function handleCtrlEnter(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!analyzeSection.classList.contains('hidden') && historySection.classList.contains('hidden')) {
+          form.requestSubmit();
+        }
+      }
+    }
+    promptInput.addEventListener('keydown', handleCtrlEnter);
+    inputField.addEventListener('keydown', handleCtrlEnter);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
