@@ -1,7 +1,8 @@
 """Stripe method: strip prompt components and compare outputs to detect over-engineering."""
 
 import re
-from app.openai_client import call_model, get_embedding, cosine_similarity
+
+from app.openai_client import call_model, cosine_similarity, get_embedding
 
 # Similarity threshold: if stripped output is this similar to baseline, component is redundant
 SIMILARITY_THRESHOLD = 0.92

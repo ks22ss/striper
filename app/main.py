@@ -1,9 +1,10 @@
 """FastAPI application for Striper - prompt over-engineering analyzer."""
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.models import AnalyzeRequest, AnalyzeResponse
 from app.stripe import run_stripe_analysis
