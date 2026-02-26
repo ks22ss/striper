@@ -21,6 +21,23 @@ def _build_full_prompt(prompt_text: str) -> str:
     return EXECUTION_TASK_PROMPT + prompt_text
 
 
+def _build_analysis_result(
+    over_engineered_score: float,
+    improved_prompt: str,
+    components_removed: list[str],
+    components_kept: list[str],
+    total_components: int,
+) -> dict:
+    """Build the standardized analysis result dict."""
+    return {
+        "over_engineered_score": round(over_engineered_score, 2),
+        "improved_prompt": improved_prompt,
+        "components_removed": components_removed,
+        "components_kept": components_kept,
+        "total_components": total_components,
+    }
+
+
 def _classify_components(
     components: list[str], redundant_indices: set[int]
 ) -> tuple[list[str], list[str]]:
@@ -77,13 +94,7 @@ def run_stripe_analysis(prompt: str) -> dict:
     """
     components = parse_components(prompt)
     if not components:
-        return {
-            "over_engineered_score": 0.0,
-            "improved_prompt": prompt,
-            "components_removed": [],
-            "components_kept": [],
-            "total_components": 0,
-        }
+        return _build_analysis_result(0.0, prompt, [], [], 0)
 
     full_prompt = _build_full_prompt(prompt)
     baseline_output = call_model(full_prompt)
@@ -99,10 +110,6 @@ def run_stripe_analysis(prompt: str) -> dict:
     improved_prompt = " ".join(components_kept) if components_kept else prompt
     over_engineered_score = len(redundant_indices) / len(components) if components else 0.0
 
-    return {
-        "over_engineered_score": round(over_engineered_score, 2),
-        "improved_prompt": improved_prompt,
-        "components_removed": components_removed,
-        "components_kept": components_kept,
-        "total_components": len(components),
-    }
+    return _build_analysis_result(
+        over_engineered_score, improved_prompt, components_removed, components_kept, len(components)
+    )

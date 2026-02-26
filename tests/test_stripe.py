@@ -75,6 +75,33 @@ def test_run_stripe_analysis_empty_prompt():
     assert result["total_components"] == 0
 
 
+def test_run_stripe_analysis_rounds_score():
+    """Over-engineered score is rounded to 2 decimal places."""
+    # 1 of 3 redundant -> 0.333... rounds to 0.33
+    embeddings = [
+        [1.0, 0.0, 0.0],  # baseline
+        [1.0, 0.0, 0.0],  # stripped without component 0 (redundant)
+        [0.0, 1.0, 0.0],  # stripped without component 1 (essential)
+        [0.0, 1.0, 0.0],  # stripped without component 2 (essential)
+    ]
+    call_count = 0
+
+    def mock_get_embedding(_text):
+        nonlocal call_count
+        result = embeddings[call_count]
+        call_count += 1
+        return result
+
+    with (
+        patch("app.stripe.call_model", return_value="sample output"),
+        patch("app.stripe.get_embedding", side_effect=mock_get_embedding),
+    ):
+        result = run_stripe_analysis("First. Second. Third.")
+
+    assert result["over_engineered_score"] == 0.33
+    assert result["total_components"] == 3
+
+
 def test_run_stripe_analysis_with_mocked_openai():
     """run_stripe_analysis correctly classifies redundant vs essential components."""
     # Embeddings: baseline and stripped(i=0) similar -> component 0 redundant;
