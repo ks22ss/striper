@@ -34,6 +34,16 @@ def test_root_serves_ui():
     )
 
 
+def test_ui_includes_copy_and_history_reload():
+    """Served UI includes Copy button and history click-to-reload elements."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "Copy" in html
+    assert "copy-improved-btn" in html
+    assert "history-item" in html or "Click to re-analyze" in html
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
