@@ -34,6 +34,14 @@ def test_root_serves_ui():
     )
 
 
+def test_ui_includes_prompt_length_indicator():
+    """UI includes prompt length (chars/words) indicator."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-count" in r.text
+    assert "chars" in r.text and "words" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

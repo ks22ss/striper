@@ -63,6 +63,7 @@
       />
       <label for="prompt" class="label mt-4">
         <span class="label-text font-medium">Your prompt</span>
+        <span class="label-text-alt text-base-content/60" id="prompt-count">0 chars, 0 words</span>
       </label>
       <textarea
         id="prompt"
@@ -144,6 +145,18 @@
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
+    const promptCountEl = document.getElementById('prompt-count');
+
+    function updatePromptCount() {
+      const text = promptInput.value;
+      const chars = text.length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      promptCountEl.textContent = chars + ' chars, ' + words + ' words';
+    }
+
+    promptInput.addEventListener('input', updatePromptCount);
+    promptInput.addEventListener('paste', () => setTimeout(updatePromptCount, 0));
+    updatePromptCount();
 
     function getAuthHeaders() {
       const token = localStorage.getItem(AUTH_KEY);
