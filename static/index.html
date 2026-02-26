@@ -98,7 +98,10 @@
 
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Improved prompt</h3>
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
+            <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" data-testid="copy-improved-btn" title="Copy to clipboard">Copy</button>
+          </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
       </div>
@@ -144,6 +147,7 @@
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
+    const copyImprovedBtn = document.getElementById('copy-improved-btn');
 
     function getAuthHeaders() {
       const token = localStorage.getItem(AUTH_KEY);
@@ -242,6 +246,8 @@
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
+    let historyItems = [];
+
     historyBtn.addEventListener('click', async () => {
       analyzeSection.classList.add('hidden');
       historySection.classList.remove('hidden');
@@ -250,12 +256,18 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+        historyItems = data.items;
         historyListEl.innerHTML = data.items.length === 0
           ? '<li class="text-base-content/70">No history yet.</li>'
-          : data.items.map(item =>
+          : data.items.map((item, i) =>
               `<li class="card bg-base-200 border border-base-300 p-4">
-                <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+                <div class="flex justify-between items-start gap-2">
+                  <div class="min-w-0 flex-1">
+                    <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
+                    <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at}</p>
+                  </div>
+                  <button type="button" class="btn btn-ghost btn-xs shrink-0" data-use-prompt-index="${i}" data-testid="use-prompt-btn" title="Load into form">Use</button>
+                </div>
               </li>`
             ).join('');
       } catch (err) {
@@ -263,9 +275,39 @@
       }
     });
 
+    historyListEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-use-prompt-index]');
+      if (!btn || historyItems.length === 0) return;
+      const idx = parseInt(btn.dataset.usePromptIndex, 10);
+      const item = historyItems[idx];
+      if (item) {
+        promptInput.value = item.prompt;
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+        promptInput.focus();
+      }
+    });
+
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
+    });
+
+    copyImprovedBtn.addEventListener('click', async () => {
+      const text = improvedPromptEl.textContent || '';
+      try {
+        await navigator.clipboard.writeText(text);
+        const orig = copyImprovedBtn.textContent;
+        copyImprovedBtn.textContent = 'Copied!';
+        copyImprovedBtn.classList.add('text-success');
+        setTimeout(() => {
+          copyImprovedBtn.textContent = orig;
+          copyImprovedBtn.classList.remove('text-success');
+        }, 2000);
+      } catch {
+        copyImprovedBtn.textContent = 'Copy failed';
+        setTimeout(() => { copyImprovedBtn.textContent = 'Copy'; }, 2000);
+      }
     });
 
     form.addEventListener('submit', async (e) => {

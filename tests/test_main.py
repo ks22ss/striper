@@ -34,6 +34,22 @@ def test_root_serves_ui():
     )
 
 
+def test_root_html_includes_use_prompt_from_history():
+    """Served UI includes Use button for history items (data-testid for history flow)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "data-use-prompt-index" in html or "use-prompt-btn" in html
+
+
+def test_root_html_contains_copy_improved_button():
+    """Served UI includes Copy button for improved prompt."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "copy-improved-btn" in html or "Copy" in html
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
