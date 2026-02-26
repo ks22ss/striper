@@ -19,11 +19,12 @@ maint: fix history limit, whitespace prompts, invalid API key + small cleanup
 
 ### Refactor
 - Extracted `HISTORY_MAX_LIMIT = 100` and `_clamp_history_limit()` for clarity and reuse.
+- Use `status.HTTP_503_SERVICE_UNAVAILABLE` instead of magic number 503 for API key errors.
 
 ### Changes
 | File | Changes |
 |------|---------|
-| `app/main.py` | `_clamp_history_limit`, `HISTORY_MAX_LIMIT`, `except AuthenticationError` |
+| `app/main.py` | `_clamp_history_limit`, `HISTORY_MAX_LIMIT`, `except AuthenticationError`, `status.HTTP_503_SERVICE_UNAVAILABLE` |
 | `app/models.py` | `prompt_not_whitespace_only` validator on `AnalyzeRequest` |
 | `tests/test_main.py` | `test_history_limit_clamped`, `test_analyze_whitespace_only_prompt_rejected`, `test_analyze_invalid_api_key_returns_503` |
 
