@@ -99,6 +99,7 @@
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Improved prompt</h3>
+          <p class="text-sm text-base-content/60 mb-2" id="char-reduction"></p>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
       </div>
@@ -143,6 +144,7 @@
     const scoreProgress = document.getElementById('score-progress');
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
+    const charReductionEl = document.getElementById('char-reduction');
     const componentsEl = document.getElementById('components');
 
     function getAuthHeaders() {
@@ -318,7 +320,22 @@
         );
 
         // Improved prompt
-        improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
+        const improved = data.improved_prompt || '(unchanged)';
+        improvedPromptEl.textContent = improved;
+
+        // Character reduction
+        const origLen = prompt.length;
+        const imprLen = improved === '(unchanged)' ? origLen : improved.length;
+        if (origLen > 0) {
+          const pct = imprLen <= origLen
+            ? Math.round((1 - imprLen / origLen) * 100)
+            : -Math.round((imprLen / origLen - 1) * 100);
+          charReductionEl.textContent = pct >= 0
+            ? `Original: ${origLen} chars → Improved: ${imprLen} chars (${pct}% shorter)`
+            : `Original: ${origLen} chars → Improved: ${imprLen} chars (${-pct}% longer)`;
+        } else {
+          charReductionEl.textContent = '';
+        }
 
         // Components
         const items = [];
