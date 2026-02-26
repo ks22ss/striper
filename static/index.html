@@ -98,7 +98,10 @@
 
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Improved prompt</h3>
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
+            <button type="button" class="btn btn-ghost btn-sm" id="use-improved-btn">Use as new prompt</button>
+          </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
       </div>
@@ -344,6 +347,13 @@
       } finally {
         submitBtn.disabled = false;
       }
+    });
+
+    document.getElementById('use-improved-btn').addEventListener('click', () => {
+      const text = improvedPromptEl.textContent || '';
+      promptInput.value = text;
+      promptInput.focus();
+      promptInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     function escapeHtml(s) {
