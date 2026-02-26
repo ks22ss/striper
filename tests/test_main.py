@@ -34,6 +34,24 @@ def test_root_serves_ui():
     )
 
 
+def test_root_html_includes_use_improved_button():
+    """Root HTML includes 'Use as new prompt' button for improved prompt."""
+    r = client.get("/")
+    assert r.status_code == 200
+    if "text/html" in r.headers.get("content-type", ""):
+        assert "use-improved-btn" in r.text
+        assert "Use as new prompt" in r.text
+
+
+def test_root_html_includes_prompt_character_count():
+    """UI includes prompt character count element."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "prompt-char-count" in html
+    assert "characters" in html
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

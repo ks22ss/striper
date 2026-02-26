@@ -63,6 +63,7 @@
       />
       <label for="prompt" class="label mt-4">
         <span class="label-text font-medium">Your prompt</span>
+        <span class="label-text-alt text-base-content/60" id="prompt-char-count">0 characters</span>
       </label>
       <textarea
         id="prompt"
@@ -98,7 +99,10 @@
 
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
-          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Improved prompt</h3>
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
+            <button type="button" class="btn btn-ghost btn-sm" id="use-improved-btn">Use as new prompt</button>
+          </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
       </div>
@@ -144,6 +148,15 @@
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
+    const promptCharCountEl = document.getElementById('prompt-char-count');
+
+    function updatePromptCharCount() {
+      const n = (promptInput.value || '').length;
+      promptCharCountEl.textContent = n === 1 ? '1 character' : n + ' characters';
+    }
+
+    promptInput.addEventListener('input', updatePromptCharCount);
+    promptInput.addEventListener('paste', () => setTimeout(updatePromptCharCount, 0));
 
     function getAuthHeaders() {
       const token = localStorage.getItem(AUTH_KEY);
@@ -344,6 +357,13 @@
       } finally {
         submitBtn.disabled = false;
       }
+    });
+
+    document.getElementById('use-improved-btn').addEventListener('click', () => {
+      const text = improvedPromptEl.textContent || '';
+      promptInput.value = text;
+      promptInput.focus();
+      promptInput.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     function escapeHtml(s) {
