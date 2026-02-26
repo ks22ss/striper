@@ -1,8 +1,9 @@
 """Tests for FastAPI app endpoints."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
+from openai import AuthenticationError
 
 from app.auth import get_current_user
 from app.main import app
@@ -263,5 +264,20 @@ def test_analyze_empty_api_key_treated_as_none():
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
         assert r.status_code == 200
         mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_analyze_invalid_api_key_returns_503():
+    """Invalid API key from request raises AuthenticationError → 503 with clear message."""
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        with patch(
+            "app.main.run_stripe_analysis",
+            side_effect=AuthenticationError("Invalid API key", response=MagicMock(), body=None),
+        ):
+            r = client.post("/analyze", json={"prompt": "Test.", "api_key": "sk-invalid"})
+        assert r.status_code == 503
+        assert "Invalid API key" in r.json()["detail"]
     finally:
         app.dependency_overrides.pop(get_current_user, None)

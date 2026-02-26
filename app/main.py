@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from openai import AuthenticationError
 
 from app.auth import authenticate_user, create_access_token, get_current_user, hash_password
 from app.database import (
@@ -32,6 +33,17 @@ from app.stripe import run_stripe_analysis
 def _is_api_key_error(exc: Exception) -> bool:
     """Check if the exception is due to missing OpenAI API key."""
     return "OPENAI_API_KEY" in str(exc)
+
+
+def _analyze_error_to_http(exc: Exception) -> HTTPException:
+    """Map analysis exceptions to appropriate HTTP responses."""
+    if isinstance(exc, ValueError):
+        if _is_api_key_error(exc):
+            return HTTPException(status_code=503, detail="OpenAI API key not configured")
+        return HTTPException(status_code=400, detail=str(exc))
+    if isinstance(exc, AuthenticationError):
+        return HTTPException(status_code=503, detail="Invalid API key")
+    return HTTPException(status_code=500, detail=f"Analysis failed: {str(exc)}")
 
 
 @asynccontextmanager
@@ -118,12 +130,8 @@ async def analyze(
             improved_prompt=result["improved_prompt"],
         )
         return AnalyzeResponse(**result)
-    except ValueError as e:
-        if _is_api_key_error(e):
-            raise HTTPException(status_code=503, detail="OpenAI API key not configured")
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+        raise _analyze_error_to_http(e)
 
 
 HISTORY_LIMIT_MIN = 1
