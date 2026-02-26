@@ -15,6 +15,7 @@ def _get_similarity_threshold() -> float:
     except ValueError:
         return 0.92
 
+
 # Wrapper for execution task: model produces a sample response as if following the instructions
 EXECUTION_TASK_INTRO = (
     "Below are instructions for an AI assistant. "
@@ -37,10 +38,7 @@ def _build_full_prompt(prompt_text: str, user_input: str | None = None) -> str:
         )
     else:
         task = (
-            EXECUTION_TASK_INTRO
-            + EXECUTION_TASK_DEFAULT_INPUT
-            + EXECUTION_TASK_OUTRO
-            + prompt_text
+            EXECUTION_TASK_INTRO + EXECUTION_TASK_DEFAULT_INPUT + EXECUTION_TASK_OUTRO + prompt_text
         )
     return task
 
@@ -144,7 +142,7 @@ def run_stripe_analysis(
     components_kept, components_removed = _classify_components(components, redundant_indices)
 
     improved_prompt = " ".join(components_kept) if components_kept else prompt
-    over_engineered_score = len(redundant_indices) / len(components) if components else 0.0
+    over_engineered_score = len(redundant_indices) / len(components)
 
     return _build_analysis_result(
         over_engineered_score, improved_prompt, components_removed, components_kept, len(components)
