@@ -1,6 +1,6 @@
 """Pydantic schemas for API request/response."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class AnalyzeRequest(BaseModel):
@@ -28,3 +28,51 @@ class AnalyzeResponse(BaseModel):
         description="Components deemed essential and kept",
     )
     total_components: int = Field(..., description="Total number of components parsed from prompt")
+
+
+# Auth schemas
+class UserCreate(BaseModel):
+    """Request body for user registration."""
+
+    username: str = Field(..., min_length=2, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+
+
+class UserResponse(BaseModel):
+    """User info in API responses."""
+
+    id: int
+    username: str
+    email: str
+
+
+class LoginRequest(BaseModel):
+    """Request body for login."""
+
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    """JWT token response."""
+
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+class PromptHistoryItem(BaseModel):
+    """Single prompt history record."""
+
+    id: int
+    prompt: str
+    over_engineered_score: float
+    improved_prompt: str
+    created_at: str
+
+
+class PromptHistoryResponse(BaseModel):
+    """List of prompt history items."""
+
+    items: list[PromptHistoryItem]
