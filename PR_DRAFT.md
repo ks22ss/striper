@@ -24,7 +24,7 @@ When the frontend provided an invalid OpenAI API key (e.g. `sk-invalid`), the Op
 ### Tests run
 ```bash
 uv run pytest tests/ -v
-# 48 passed
+# 49 passed
 ```
 
 ### Known risks
