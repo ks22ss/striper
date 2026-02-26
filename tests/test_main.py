@@ -34,6 +34,13 @@ def test_root_serves_ui():
     )
 
 
+def test_ui_includes_saved_to_history_feedback():
+    """UI shows 'Saved to history' feedback after successful analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Saved to history" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
