@@ -34,6 +34,14 @@ def test_root_serves_ui():
     )
 
 
+def test_root_ui_includes_theme_toggle():
+    """Root UI includes theme toggle when serving HTML."""
+    r = client.get("/")
+    assert r.status_code == 200
+    if "text/html" in r.headers.get("content-type", ""):
+        assert "theme-toggle" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
