@@ -1,9 +1,11 @@
 """Unit tests for Stripe method logic."""
 
+from unittest.mock import patch
+
 import pytest
 
 from app.openai_client import cosine_similarity
-from app.stripe import parse_components
+from app.stripe import parse_components, run_stripe_analysis
 
 
 def test_parse_components_single_sentence():
@@ -61,3 +63,42 @@ def test_cosine_similarity_orthogonal():
 def test_cosine_similarity_zero_vector():
     """Zero vector returns 0.0 (avoids division by zero)."""
     assert cosine_similarity([0.0, 0.0, 0.0], [1.0, 2.0, 3.0]) == 0.0
+
+
+def test_run_stripe_analysis_empty_prompt():
+    """Empty prompt returns zero score and empty component lists."""
+    result = run_stripe_analysis("")
+    assert result["over_engineered_score"] == 0.0
+    assert result["improved_prompt"] == ""
+    assert result["components_removed"] == []
+    assert result["components_kept"] == []
+    assert result["total_components"] == 0
+
+
+def test_run_stripe_analysis_with_mocked_openai():
+    """run_stripe_analysis correctly classifies redundant vs essential components."""
+    # Embeddings: baseline and stripped(i=0) similar -> component 0 redundant;
+    # stripped(i=1) different -> component 1 essential
+    embeddings = [
+        [1.0, 0.0, 0.0],  # baseline
+        [1.0, 0.0, 0.0],  # stripped without component 0 (similar)
+        [0.0, 1.0, 0.0],  # stripped without component 1 (different)
+    ]
+    call_count = 0
+
+    def mock_get_embedding(_text):
+        nonlocal call_count
+        result = embeddings[call_count]
+        call_count += 1
+        return result
+
+    with (
+        patch("app.stripe.call_model", return_value="sample output"),
+        patch("app.stripe.get_embedding", side_effect=mock_get_embedding),
+    ):
+        result = run_stripe_analysis("Be concise. Always use bullet points.")
+
+    assert result["over_engineered_score"] == 0.5  # 1 of 2 redundant
+    assert result["components_removed"] == ["Be concise."]
+    assert result["components_kept"] == ["Always use bullet points."]
+    assert result["total_components"] == 2
