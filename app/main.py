@@ -106,7 +106,11 @@ async def analyze(
     Requires authentication. Saves result to user's prompt history.
     """
     try:
-        result = run_stripe_analysis(request.prompt)
+        result = run_stripe_analysis(
+            request.prompt,
+            user_input=request.input,
+            api_key=request.api_key,
+        )
         add_prompt_history(
             user_id=current_user["id"],
             prompt=request.prompt,
