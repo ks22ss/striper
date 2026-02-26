@@ -49,3 +49,26 @@ def test_analyze_success():
     assert data["improved_prompt"] == "Be concise."
     assert "components_removed" in data
     assert "components_kept" in data
+
+
+def test_analyze_with_optional_input():
+    """Analyze endpoint accepts optional input and passes it to stripe analysis."""
+    mock_result = {
+        "over_engineered_score": 0.0,
+        "improved_prompt": "Summarize briefly.",
+        "components_removed": [],
+        "components_kept": ["Summarize briefly."],
+        "total_components": 1,
+    }
+    with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run:
+        r = client.post(
+            "/analyze",
+            json={
+                "prompt": "Summarize briefly.",
+                "input": "This is a long document about AI and machine learning.",
+            },
+        )
+    assert r.status_code == 200
+    mock_run.assert_called_once_with(
+        "Summarize briefly.", "This is a long document about AI and machine learning."
+    )

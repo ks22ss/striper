@@ -7,6 +7,10 @@ class AnalyzeRequest(BaseModel):
     """Request body for prompt analysis."""
 
     prompt: str = Field(..., min_length=1, description="The prompt to analyze for over-engineering")
+    input: str | None = Field(
+        default=None,
+        description="Optional input text that the prompt will process (e.g. sample user message)",
+    )
 
 
 class AnalyzeResponse(BaseModel):

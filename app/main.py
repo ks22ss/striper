@@ -43,7 +43,7 @@ async def analyze(request: AnalyzeRequest):
     Returns over-engineered score, improved prompt, and component breakdown.
     """
     try:
-        result = run_stripe_analysis(request.prompt)
+        result = run_stripe_analysis(request.prompt, request.input)
         return AnalyzeResponse(**result)
     except ValueError as e:
         if _is_api_key_error(e):

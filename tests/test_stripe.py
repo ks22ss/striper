@@ -5,7 +5,12 @@ from unittest.mock import patch
 import pytest
 
 from app.openai_client import cosine_similarity
-from app.stripe import _build_analysis_result, parse_components, run_stripe_analysis
+from app.stripe import (
+    _build_analysis_result,
+    _build_full_prompt,
+    parse_components,
+    run_stripe_analysis,
+)
 
 
 def test_parse_components_single_sentence():
@@ -75,6 +80,23 @@ def test_cosine_similarity_zero_vector():
     assert cosine_similarity([0.0, 0.0, 0.0], [1.0, 2.0, 3.0]) == 0.0
 
 
+def test_build_full_prompt_without_input():
+    """_build_full_prompt uses default user query when no input provided."""
+    result = _build_full_prompt("Be concise.")
+    assert "What can you help me with?" in result
+    assert "Be concise." in result
+    assert "User input:" not in result
+
+
+def test_build_full_prompt_with_input():
+    """_build_full_prompt includes user input when provided."""
+    result = _build_full_prompt("Summarize briefly.", "This is the document to summarize.")
+    assert "User input:" in result
+    assert "This is the document to summarize." in result
+    assert "Summarize briefly." in result
+    assert "What can you help me with?" not in result
+
+
 def test_run_stripe_analysis_empty_prompt():
     """Empty prompt returns zero score and empty component lists."""
     result = run_stripe_analysis("")
@@ -83,6 +105,25 @@ def test_run_stripe_analysis_empty_prompt():
     assert result["components_removed"] == []
     assert result["components_kept"] == []
     assert result["total_components"] == 0
+
+
+def test_run_stripe_analysis_with_input_passes_to_model():
+    """run_stripe_analysis with user_input includes it in the prompt sent to the model."""
+    captured_prompts = []
+
+    def capture_prompt(prompt):
+        captured_prompts.append(prompt)
+        return "sample output"
+
+    with (
+        patch("app.stripe.call_model", side_effect=capture_prompt),
+        patch("app.stripe.get_embedding", return_value=[1.0, 0.0, 0.0]),
+    ):
+        run_stripe_analysis("A.", user_input="My custom input")
+
+    assert len(captured_prompts) >= 1
+    assert "My custom input" in captured_prompts[0]
+    assert "User input:" in captured_prompts[0]
 
 
 def test_run_stripe_analysis_with_mocked_openai():
