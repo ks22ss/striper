@@ -34,6 +34,15 @@ def test_root_serves_ui():
     )
 
 
+def test_ui_has_copy_improved_prompt_button():
+    """UI contains copy button and improved-prompt element for Copy improved prompt feature."""
+    r = client.get("/")
+    assert r.status_code == 200
+    body = r.text
+    assert "copy-improved-btn" in body
+    assert "improved-prompt" in body
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
