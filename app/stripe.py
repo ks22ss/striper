@@ -1,11 +1,19 @@
 """Stripe method: strip prompt components and compare outputs to detect over-engineering."""
 
+import os
 import re
 
 from app.openai_client import call_model, cosine_similarity, get_embedding
 
-# Similarity threshold: if stripped output is this similar to baseline, component is redundant
-SIMILARITY_THRESHOLD = 0.92
+
+def _get_similarity_threshold() -> float:
+    """Similarity threshold from env; above this, stripped output is deemed redundant."""
+    raw = os.getenv("SIMILARITY_THRESHOLD", "0.92")
+    try:
+        val = float(raw)
+        return max(0.0, min(1.0, val))
+    except ValueError:
+        return 0.92
 
 # Wrapper for execution task: model produces a sample response as if following the instructions
 EXECUTION_TASK_PROMPT = (
@@ -19,6 +27,23 @@ EXECUTION_TASK_PROMPT = (
 def _build_full_prompt(prompt_text: str) -> str:
     """Prepend execution task wrapper to the given prompt."""
     return EXECUTION_TASK_PROMPT + prompt_text
+
+
+def _build_analysis_result(
+    over_engineered_score: float,
+    improved_prompt: str,
+    components_removed: list[str],
+    components_kept: list[str],
+    total_components: int,
+) -> dict:
+    """Build the analysis result dict with consistent structure and rounded score."""
+    return {
+        "over_engineered_score": round(over_engineered_score, 2),
+        "improved_prompt": improved_prompt,
+        "components_removed": components_removed,
+        "components_kept": components_kept,
+        "total_components": total_components,
+    }
 
 
 def _classify_components(
@@ -43,7 +68,7 @@ def _is_component_redundant(
     stripped_output = call_model(stripped_full)
     stripped_embedding = get_embedding(stripped_output)
     sim = cosine_similarity(baseline_embedding, stripped_embedding)
-    return sim >= SIMILARITY_THRESHOLD
+    return sim >= _get_similarity_threshold()
 
 
 def parse_components(prompt: str) -> list[str]:
@@ -77,13 +102,7 @@ def run_stripe_analysis(prompt: str) -> dict:
     """
     components = parse_components(prompt)
     if not components:
-        return {
-            "over_engineered_score": 0.0,
-            "improved_prompt": prompt,
-            "components_removed": [],
-            "components_kept": [],
-            "total_components": 0,
-        }
+        return _build_analysis_result(0.0, prompt, [], [], 0)
 
     full_prompt = _build_full_prompt(prompt)
     baseline_output = call_model(full_prompt)
@@ -99,10 +118,6 @@ def run_stripe_analysis(prompt: str) -> dict:
     improved_prompt = " ".join(components_kept) if components_kept else prompt
     over_engineered_score = len(redundant_indices) / len(components) if components else 0.0
 
-    return {
-        "over_engineered_score": round(over_engineered_score, 2),
-        "improved_prompt": improved_prompt,
-        "components_removed": components_removed,
-        "components_kept": components_kept,
-        "total_components": len(components),
-    }
+    return _build_analysis_result(
+        over_engineered_score, improved_prompt, components_removed, components_kept, len(components)
+    )

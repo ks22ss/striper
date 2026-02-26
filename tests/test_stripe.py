@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from app.openai_client import cosine_similarity
-from app.stripe import parse_components, run_stripe_analysis
+from app.stripe import _build_analysis_result, parse_components, run_stripe_analysis
 
 
 def test_parse_components_single_sentence():
@@ -46,6 +46,16 @@ def test_parse_components_mixed():
         "More here.",
         "End.",
     ]
+
+
+def test_build_analysis_result_rounds_score():
+    """_build_analysis_result rounds over_engineered_score to 2 decimals."""
+    result = _build_analysis_result(0.333333, "x", [], ["x"], 1)
+    assert result["over_engineered_score"] == 0.33
+    assert result["improved_prompt"] == "x"
+    assert result["components_removed"] == []
+    assert result["components_kept"] == ["x"]
+    assert result["total_components"] == 1
 
 
 def test_cosine_similarity_identical():
@@ -102,3 +112,33 @@ def test_run_stripe_analysis_with_mocked_openai():
     assert result["components_removed"] == ["Be concise."]
     assert result["components_kept"] == ["Always use bullet points."]
     assert result["total_components"] == 2
+
+
+def test_run_stripe_analysis_respects_similarity_threshold_env():
+    """run_stripe_analysis uses SIMILARITY_THRESHOLD from env when set."""
+    # With threshold 0.95, sim=1.0 still passes; with 0.99, sim=0.9 would fail.
+    # Use embeddings where sim=0.93: with default 0.92 it's redundant, with 0.95 it's essential
+    embeddings = [
+        [1.0, 0.0, 0.0],  # baseline
+        [0.93, 0.37, 0.0],  # stripped(i=0): cos sim ~0.93
+        [0.0, 1.0, 0.0],  # stripped(i=1): different
+    ]
+    call_count = 0
+
+    def mock_get_embedding(_text):
+        nonlocal call_count
+        result = embeddings[call_count]
+        call_count += 1
+        return result
+
+    with (
+        patch("app.stripe.call_model", return_value="sample output"),
+        patch("app.stripe.get_embedding", side_effect=mock_get_embedding),
+        patch.dict("os.environ", {"SIMILARITY_THRESHOLD": "0.95"}),
+    ):
+        result = run_stripe_analysis("A. B.")
+
+    # With threshold 0.95, 0.93 < 0.95 so component 0 is essential; component 1 also essential
+    assert result["over_engineered_score"] == 0.0
+    assert result["components_removed"] == []
+    assert result["components_kept"] == ["A.", "B."]
