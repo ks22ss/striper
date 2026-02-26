@@ -6,14 +6,17 @@ import re
 from app.openai_client import call_model, cosine_similarity, get_embedding
 
 
+DEFAULT_SIMILARITY_THRESHOLD = 0.92
+
+
 def _get_similarity_threshold() -> float:
     """Similarity threshold from env; above this, stripped output is deemed redundant."""
-    raw = os.getenv("SIMILARITY_THRESHOLD", "0.92")
+    raw = os.getenv("SIMILARITY_THRESHOLD", str(DEFAULT_SIMILARITY_THRESHOLD))
     try:
         val = float(raw)
         return max(0.0, min(1.0, val))
     except ValueError:
-        return 0.92
+        return DEFAULT_SIMILARITY_THRESHOLD
 
 # Wrapper for execution task: model produces a sample response as if following the instructions
 EXECUTION_TASK_INTRO = (
