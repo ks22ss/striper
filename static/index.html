@@ -336,7 +336,7 @@
         ).join('');
 
         resultsEl.classList.remove('hidden');
-        statusEl.textContent = 'Done';
+        statusEl.textContent = 'Done. Saved to history.';
         statusEl.className = 'text-sm text-base-content/70';
       } catch (err) {
         statusEl.textContent = err.message || 'Error';
