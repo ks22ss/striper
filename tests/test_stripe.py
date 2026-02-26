@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.stripe import parse_components
 from app.openai_client import cosine_similarity
+from app.stripe import parse_components
 
 
 def test_parse_components_single_sentence():

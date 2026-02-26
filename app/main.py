@@ -9,6 +9,12 @@ from fastapi.staticfiles import StaticFiles
 from app.models import AnalyzeRequest, AnalyzeResponse
 from app.stripe import run_stripe_analysis
 
+
+def _is_api_key_error(exc: Exception) -> bool:
+    """Check if the exception is due to missing OpenAI API key."""
+    return "OPENAI_API_KEY" in str(exc)
+
+
 app = FastAPI(
     title="Striper",
     description="Analyze prompts for over-engineering using the Stripe method",
@@ -40,7 +46,7 @@ async def analyze(request: AnalyzeRequest):
         result = run_stripe_analysis(request.prompt)
         return AnalyzeResponse(**result)
     except ValueError as e:
-        if "OPENAI_API_KEY" in str(e):
+        if _is_api_key_error(e):
             raise HTTPException(status_code=503, detail="OpenAI API key not configured")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
