@@ -1,24 +1,65 @@
 """Stripe method: strip prompt components and compare outputs to detect over-engineering."""
 
+import os
 import re
 
 from app.openai_client import call_model, cosine_similarity, get_embedding
 
-# Similarity threshold: if stripped output is this similar to baseline, component is redundant
-SIMILARITY_THRESHOLD = 0.92
+
+def _get_similarity_threshold() -> float:
+    """Similarity threshold from env; above this, stripped output is deemed redundant."""
+    raw = os.getenv("SIMILARITY_THRESHOLD", "0.92")
+    try:
+        val = float(raw)
+        return max(0.0, min(1.0, val))
+    except ValueError:
+        return 0.92
 
 # Wrapper for execution task: model produces a sample response as if following the instructions
-EXECUTION_TASK_PROMPT = (
+EXECUTION_TASK_INTRO = (
     "Below are instructions for an AI assistant. "
     "Imagine you are that assistant. Produce a SHORT sample response (2-3 sentences) "
-    "as you would reply to a user asking 'What can you help me with?' "
-    "Follow the instructions exactly.\n\n---\n\n"
 )
+EXECUTION_TASK_DEFAULT_INPUT = "as you would reply to a user asking 'What can you help me with?' "
+EXECUTION_TASK_OUTRO = "Follow the instructions exactly.\n\n---\n\n"
 
 
-def _build_full_prompt(prompt_text: str) -> str:
-    """Prepend execution task wrapper to the given prompt."""
-    return EXECUTION_TASK_PROMPT + prompt_text
+def _build_full_prompt(prompt_text: str, user_input: str | None = None) -> str:
+    """Build full prompt with execution task wrapper and optional user input."""
+    if user_input:
+        task = (
+            EXECUTION_TASK_INTRO
+            + "The user has sent you the following input. Respond to it. "
+            + EXECUTION_TASK_OUTRO
+            + prompt_text
+            + "\n\nUser input:\n"
+            + user_input
+        )
+    else:
+        task = (
+            EXECUTION_TASK_INTRO
+            + EXECUTION_TASK_DEFAULT_INPUT
+            + EXECUTION_TASK_OUTRO
+            + prompt_text
+        )
+    return task
+
+
+def _build_analysis_result(
+    over_engineered_score: float,
+    improved_prompt: str,
+    components_removed: list[str],
+    components_kept: list[str],
+    total_components: int,
+) -> dict:
+    """Build the analysis result dict with consistent structure and rounded score."""
+    return {
+        "over_engineered_score": round(over_engineered_score, 2),
+        "improved_prompt": improved_prompt,
+        "components_removed": components_removed,
+        "components_kept": components_kept,
+        "total_components": total_components,
+    }
 
 
 def _build_analysis_result(
@@ -48,7 +89,10 @@ def _classify_components(
 
 
 def _is_component_redundant(
-    components: list[str], index: int, baseline_embedding: list[float]
+    components: list[str],
+    index: int,
+    baseline_embedding: list[float],
+    user_input: str | None = None,
 ) -> bool:
     """
     Check if removing the component at index yields output similar to baseline.
@@ -56,11 +100,11 @@ def _is_component_redundant(
     """
     stripped_components = components[:index] + components[index + 1 :]
     stripped_prompt = " ".join(stripped_components)
-    stripped_full = _build_full_prompt(stripped_prompt)
+    stripped_full = _build_full_prompt(stripped_prompt, user_input)
     stripped_output = call_model(stripped_full)
     stripped_embedding = get_embedding(stripped_output)
     sim = cosine_similarity(baseline_embedding, stripped_embedding)
-    return sim >= SIMILARITY_THRESHOLD
+    return sim >= _get_similarity_threshold()
 
 
 def parse_components(prompt: str) -> list[str]:
@@ -87,22 +131,23 @@ def parse_components(prompt: str) -> list[str]:
     return components
 
 
-def run_stripe_analysis(prompt: str) -> dict:
+def run_stripe_analysis(prompt: str, user_input: str | None = None) -> dict:
     """
     Run the Stripe method analysis.
     Returns dict with over_engineered_score, improved_prompt, components_removed, components_kept.
+    user_input: optional text that the prompt will process (e.g. sample user message).
     """
     components = parse_components(prompt)
     if not components:
         return _build_analysis_result(0.0, prompt, [], [], 0)
 
-    full_prompt = _build_full_prompt(prompt)
+    full_prompt = _build_full_prompt(prompt, user_input)
     baseline_output = call_model(full_prompt)
     baseline_embedding = get_embedding(baseline_output)
 
     redundant_indices: set[int] = set()
     for i in range(len(components)):
-        if _is_component_redundant(components, i, baseline_embedding):
+        if _is_component_redundant(components, i, baseline_embedding, user_input):
             redundant_indices.add(i)
 
     components_kept, components_removed = _classify_components(components, redundant_indices)

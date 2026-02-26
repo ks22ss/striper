@@ -35,8 +35,12 @@ Open http://127.0.0.1:8000 in your browser.
 ## API
 
 - `GET /` – Serves the UI
-- `POST /analyze` – Body: `{"prompt": "..."}` → Returns score, improved prompt, component breakdown
+- `POST /analyze` – Body: `{"prompt": "...", "input": "..."}` (input optional) → Returns score, improved prompt, component breakdown
 - `GET /health` – Health check
+
+## UI
+
+Paste a prompt, optionally add sample input text the prompt will process, click **Analyze**, and view the over-engineered score, improved prompt, and component breakdown (kept vs removed).
 
 ## Project structure
 

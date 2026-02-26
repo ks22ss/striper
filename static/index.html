@@ -59,6 +59,16 @@
         placeholder="e.g. You are a helpful assistant. Always be concise. Use bullet points. Respond in JSON format. Never use markdown."
         required
       ></textarea>
+      <label for="input" class="label mt-4">
+        <span class="label-text font-medium">Input (optional)</span>
+        <span class="label-text-alt text-base-content/60">Sample text the prompt will process</span>
+      </label>
+      <textarea
+        id="input"
+        name="input"
+        class="textarea textarea-bordered w-full min-h-[80px] font-mono text-sm resize-y"
+        placeholder="e.g. Summarize this document: [paste text here]"
+      ></textarea>
       <div class="flex gap-3 items-center mt-4">
         <button type="submit" class="btn btn-primary" id="submit-btn">Analyze</button>
         <span class="text-sm text-base-content/70" id="status"></span>
@@ -113,6 +123,7 @@
     const registerForm = document.getElementById('register-form');
     const form = document.getElementById('analyze-form');
     const promptInput = document.getElementById('prompt');
+    const inputField = document.getElementById('input');
     const submitBtn = document.getElementById('submit-btn');
     const statusEl = document.getElementById('status');
     const resultsEl = document.getElementById('results');
@@ -249,16 +260,20 @@
       const prompt = promptInput.value.trim();
       if (!prompt) return;
 
+      const inputText = inputField.value.trim() || null;
+
       submitBtn.disabled = true;
       statusEl.textContent = 'Analyzing...';
       statusEl.className = 'text-sm text-primary';
       resultsEl.classList.add('hidden');
 
       try {
+        const body = { prompt };
+        if (inputText) body.input = inputText;
         const res = await fetch('/analyze', {
           method: 'POST',
           headers: getAuthHeaders(),
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify(body),
         });
 
         const data = await res.json();

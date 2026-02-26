@@ -164,3 +164,32 @@ def test_history_success():
         assert data["items"][0]["prompt"] == "Be nice."
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_analyze_with_optional_input():
+    """Analyze endpoint accepts optional input and passes it to stripe analysis."""
+    mock_result = {
+        "over_engineered_score": 0.0,
+        "improved_prompt": "Summarize briefly.",
+        "components_removed": [],
+        "components_kept": ["Summarize briefly."],
+        "total_components": 1,
+    }
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run, patch(
+            "app.main.add_prompt_history"
+        ):
+            r = client.post(
+                "/analyze",
+                json={
+                    "prompt": "Summarize briefly.",
+                    "input": "This is a long document about AI and machine learning.",
+                },
+            )
+        assert r.status_code == 200
+        mock_run.assert_called_once_with(
+            "Summarize briefly.", "This is a long document about AI and machine learning."
+        )
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
