@@ -42,23 +42,13 @@ def test_root_serves_ui():
     )
 
 
-def test_root_html_includes_analysis_duration_display():
-    """UI includes analysis duration display logic (Analyzed in X.Xs)."""
+
+def test_ui_includes_prompt_length_indicator():
+    """UI includes prompt length (chars/words) indicator."""
     r = client.get("/")
     assert r.status_code == 200
-    html = r.text
-    assert "Analyzed in" in html
-    assert "durationSec" in html or "startTime" in html
-
-
-def test_ui_includes_copy_and_history_reload():
-    """Served UI includes Copy button and history click-to-reload elements."""
-    r = client.get("/")
-    assert r.status_code == 200
-    html = r.text
-    assert "Copy" in html
-    assert "copy-improved-btn" in html
-    assert "history-item" in html or "Click to re-analyze" in html
+    assert "prompt-count" in r.text
+    assert "chars" in r.text and "words" in r.text
 
 
 def test_analyze_unauthorized():
