@@ -308,6 +308,7 @@
       statusEl.textContent = 'Analyzing...';
       statusEl.className = 'text-sm text-primary';
       resultsEl.classList.add('hidden');
+      const startTime = Date.now();
 
       try {
         const body = { prompt };
@@ -365,7 +366,8 @@
         ).join('');
 
         resultsEl.classList.remove('hidden');
-        statusEl.textContent = 'Done';
+        const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+        statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
         statusEl.className = 'text-sm text-base-content/70';
       } catch (err) {
         statusEl.textContent = err.message || 'Error';
