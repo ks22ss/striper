@@ -26,6 +26,26 @@ async def _fake_get_current_user():
     return FAKE_USER
 
 
+def _mock_analysis_result(
+    over_engineered_score: float = 0.0,
+    improved_prompt: str = "",
+    components_removed: list | None = None,
+    components_kept: list | None = None,
+    total_components: int | None = None,
+) -> dict:
+    """Build mock analysis result dict for tests. Infers total_components if omitted."""
+    removed = components_removed if components_removed is not None else []
+    kept = components_kept if components_kept is not None else []
+    total = total_components if total_components is not None else len(removed) + len(kept)
+    return {
+        "over_engineered_score": over_engineered_score,
+        "improved_prompt": improved_prompt,
+        "components_removed": removed,
+        "components_kept": kept,
+        "total_components": total,
+    }
+
+
 def test_health():
     """Health endpoint returns ok."""
     r = client.get("/health")
@@ -69,13 +89,13 @@ def test_analyze_requires_prompt():
 
 def test_analyze_success():
     """Analyze endpoint returns result when stripe analysis succeeds."""
-    mock_result = {
-        "over_engineered_score": 0.25,
-        "improved_prompt": "Be concise.",
-        "components_removed": ["Always use bullet points."],
-        "components_kept": ["Be concise."],
-        "total_components": 2,
-    }
+    mock_result = _mock_analysis_result(
+        over_engineered_score=0.25,
+        improved_prompt="Be concise.",
+        components_removed=["Always use bullet points."],
+        components_kept=["Be concise."],
+        total_components=2,
+    )
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
         with (
@@ -241,13 +261,11 @@ def test_history_accepts_valid_limit():
 
 def test_analyze_with_optional_input():
     """Analyze endpoint accepts optional input and passes it to stripe analysis."""
-    mock_result = {
-        "over_engineered_score": 0.0,
-        "improved_prompt": "Summarize briefly.",
-        "components_removed": [],
-        "components_kept": ["Summarize briefly."],
-        "total_components": 1,
-    }
+    mock_result = _mock_analysis_result(
+        improved_prompt="Summarize briefly.",
+        components_kept=["Summarize briefly."],
+        total_components=1,
+    )
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
         with (
@@ -273,13 +291,11 @@ def test_analyze_with_optional_input():
 
 def test_analyze_with_api_key_in_request():
     """Analyze passes api_key from request to stripe analysis."""
-    mock_result = {
-        "over_engineered_score": 0.0,
-        "improved_prompt": "Test.",
-        "components_removed": [],
-        "components_kept": ["Test."],
-        "total_components": 1,
-    }
+    mock_result = _mock_analysis_result(
+        improved_prompt="Test.",
+        components_kept=["Test."],
+        total_components=1,
+    )
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
         with (
@@ -298,13 +314,11 @@ def test_analyze_with_api_key_in_request():
 
 def test_analyze_empty_api_key_treated_as_none():
     """Empty or whitespace api_key is treated as None (uses env fallback)."""
-    mock_result = {
-        "over_engineered_score": 0.0,
-        "improved_prompt": "Test.",
-        "components_removed": [],
-        "components_kept": ["Test."],
-        "total_components": 1,
-    }
+    mock_result = _mock_analysis_result(
+        improved_prompt="Test.",
+        components_kept=["Test."],
+        total_components=1,
+    )
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
         with (
