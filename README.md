@@ -39,7 +39,7 @@ Open http://127.0.0.1:8000 in your browser.
 
 ## UI
 
-Paste a prompt, optionally add sample input text the prompt will process, optionally enter an OpenAI API key (uses server config if blank), click **Analyze** (or press **Ctrl+Enter** / **Cmd+Enter**), and view the over-engineered score, improved prompt, and component breakdown (kept vs removed).
+Paste a prompt, optionally add sample input text the prompt will process, optionally enter an OpenAI API key (uses server config if blank), click **Analyze** (or press **Ctrl+Enter** / **Cmd+Enter**), and view the over-engineered score, improved prompt, and component breakdown (kept vs removed). Use the **Copy** button next to the improved prompt to copy it to the clipboard. In **History**, click any item to load its prompt into the form for re-analysis or editing.
 
 ## Project structure
 
