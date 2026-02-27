@@ -5,7 +5,6 @@ import re
 
 from app.openai_client import call_model, cosine_similarity, get_embedding
 
-
 DEFAULT_SIMILARITY_THRESHOLD = 0.92
 
 
