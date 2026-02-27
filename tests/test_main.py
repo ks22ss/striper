@@ -51,6 +51,14 @@ def test_ui_includes_prompt_length_indicator():
     assert "chars" in r.text and "words" in r.text
 
 
+def test_ui_includes_use_improved_button():
+    """UI includes Use as prompt button for iterative refinement."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "use-improved-btn" in r.text
+    assert "Use as prompt" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
