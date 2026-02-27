@@ -138,14 +138,6 @@ async def analyze(
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 
-HISTORY_MAX_LIMIT = 100
-
-
-def _clamp_history_limit(limit: int) -> int:
-    """Clamp history limit to a safe range to prevent abuse."""
-    return max(1, min(HISTORY_MAX_LIMIT, limit))
-
-
 @app.get("/history", response_model=PromptHistoryResponse)
 async def get_history(
     current_user: dict = Depends(get_current_user),
@@ -157,7 +149,7 @@ async def get_history(
     ),
 ):
     """Return the current user's prompt analysis history."""
-    rows = get_prompt_history(current_user["id"], limit=_clamp_history_limit(limit))
+    rows = get_prompt_history(current_user["id"], limit=limit)
     items = [
         PromptHistoryItem(
             id=row["id"],
