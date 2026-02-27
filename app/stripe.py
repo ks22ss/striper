@@ -15,6 +15,7 @@ def _get_similarity_threshold() -> float:
     except ValueError:
         return 0.92
 
+
 # Wrapper for execution task: model produces a sample response as if following the instructions
 EXECUTION_TASK_INTRO = (
     "Below are instructions for an AI assistant. "
@@ -37,10 +38,7 @@ def _build_full_prompt(prompt_text: str, user_input: str | None = None) -> str:
         )
     else:
         task = (
-            EXECUTION_TASK_INTRO
-            + EXECUTION_TASK_DEFAULT_INPUT
-            + EXECUTION_TASK_OUTRO
-            + prompt_text
+            EXECUTION_TASK_INTRO + EXECUTION_TASK_DEFAULT_INPUT + EXECUTION_TASK_OUTRO + prompt_text
         )
     return task
 
@@ -69,6 +67,11 @@ def _classify_components(
     kept = [c for i, c in enumerate(components) if i not in redundant_indices]
     removed = [c for i, c in enumerate(components) if i in redundant_indices]
     return kept, removed
+
+
+def _build_improved_prompt(components_kept: list[str], fallback: str) -> str:
+    """Join kept components into improved prompt, or return fallback if none kept."""
+    return " ".join(components_kept) if components_kept else fallback
 
 
 def _is_component_redundant(
@@ -143,7 +146,7 @@ def run_stripe_analysis(
 
     components_kept, components_removed = _classify_components(components, redundant_indices)
 
-    improved_prompt = " ".join(components_kept) if components_kept else prompt
+    improved_prompt = _build_improved_prompt(components_kept, prompt)
     over_engineered_score = len(redundant_indices) / len(components) if components else 0.0
 
     return _build_analysis_result(
