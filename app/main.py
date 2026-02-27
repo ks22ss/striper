@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from openai import AuthenticationError
 
 from app.auth import authenticate_user, create_access_token, get_current_user, hash_password
 from app.database import (
@@ -122,13 +123,26 @@ async def analyze(
         return AnalyzeResponse(**result)
     except ValueError as e:
         if _is_api_key_error(e):
-            raise HTTPException(status_code=503, detail="OpenAI API key not configured")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="OpenAI API key not configured",
+            )
         raise HTTPException(status_code=400, detail=str(e))
+    except AuthenticationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(e),
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+HISTORY_MAX_LIMIT = 100
 
-HISTORY_LIMIT_MIN = 1
+
+def _clamp_history_limit(limit: int) -> int:
+    """Clamp history limit to a safe range to prevent abuse."""
+    return max(1, min(HISTORY_MAX_LIMIT, limit))
+
 
 
 @app.get("/history", response_model=PromptHistoryResponse)
@@ -142,7 +156,7 @@ async def get_history(
     ),
 ):
     """Return the current user's prompt analysis history."""
-    rows = get_prompt_history(current_user["id"], limit=limit)
+    rows = get_prompt_history(current_user["id"], limit=_clamp_history_limit(limit))
     items = [
         PromptHistoryItem(
             id=row["id"],
