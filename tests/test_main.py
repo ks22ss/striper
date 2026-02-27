@@ -42,6 +42,15 @@ def test_root_serves_ui():
     )
 
 
+def test_root_html_includes_analysis_duration_display():
+    """UI includes analysis duration display logic (Analyzed in X.Xs)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "Analyzed in" in html
+    assert "durationSec" in html or "startTime" in html
+
+
 def test_ui_includes_copy_and_history_reload():
     """Served UI includes Copy button and history click-to-reload elements."""
     r = client.get("/")
