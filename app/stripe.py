@@ -69,6 +69,11 @@ def _classify_components(
     return kept, removed
 
 
+def _build_improved_prompt(components_kept: list[str], fallback: str) -> str:
+    """Join kept components into improved prompt, or return fallback if none kept."""
+    return " ".join(components_kept) if components_kept else fallback
+
+
 def _is_component_redundant(
     components: list[str],
     index: int,
@@ -141,7 +146,7 @@ def run_stripe_analysis(
 
     components_kept, components_removed = _classify_components(components, redundant_indices)
 
-    improved_prompt = " ".join(components_kept) if components_kept else prompt
+    improved_prompt = _build_improved_prompt(components_kept, prompt)
     over_engineered_score = len(redundant_indices) / len(components) if components else 0.0
 
     return _build_analysis_result(

@@ -13,6 +13,13 @@ client = TestClient(app)
 FAKE_USER = {"id": 1, "username": "testuser", "email": "test@example.com"}
 
 
+def test_app_imports_with_auth_dependencies():
+    """Regression: app imports require bcrypt, python-jose, email-validator."""
+    from app.auth import hash_password  # noqa: F401 - exercises bcrypt import
+
+    assert app.title == "Striper"
+
+
 async def _fake_get_current_user():
     return FAKE_USER
 
