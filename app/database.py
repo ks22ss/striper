@@ -6,7 +6,8 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).parent.parent / "striper.db"
 
-# History limit bounds; API validates 1..HISTORY_LIMIT_MAX
+# History limit bounds; API validates HISTORY_LIMIT_MIN..HISTORY_LIMIT_MAX
+HISTORY_LIMIT_MIN = 1
 HISTORY_LIMIT_DEFAULT = 50
 HISTORY_LIMIT_MAX = 100
 
