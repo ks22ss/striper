@@ -61,6 +61,15 @@ def test_ui_includes_copy_and_history_reload():
     assert "history-item" in html or "Click to re-analyze" in html
 
 
+def test_ui_includes_use_improved_as_prompt_button():
+    """Served UI includes Use as prompt button for loading improved prompt into form."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "Use as prompt" in html
+    assert "use-improved-btn" in html
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

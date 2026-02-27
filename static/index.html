@@ -101,7 +101,10 @@
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
-            <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+            <div class="flex gap-1">
+              <button type="button" class="btn btn-ghost btn-xs" id="use-improved-btn" title="Load into prompt for re-analysis">Use as prompt</button>
+              <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+            </div>
           </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
@@ -149,6 +152,7 @@
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
+    const useImprovedBtn = document.getElementById('use-improved-btn');
 
     function getAuthHeaders() {
       const token = localStorage.getItem(AUTH_KEY);
@@ -296,6 +300,14 @@
         copyImprovedBtn.textContent = 'Copy failed';
         setTimeout(() => { copyImprovedBtn.textContent = 'Copy'; }, 1500);
       }
+    });
+
+    useImprovedBtn.addEventListener('click', () => {
+      const text = improvedPromptEl.textContent || '';
+      if (!text || text === '(unchanged)') return;
+      promptInput.value = text;
+      promptInput.focus();
+      promptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
     function handleCtrlEnter(e) {
