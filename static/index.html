@@ -84,6 +84,7 @@
       <div class="flex gap-3 items-center mt-4">
         <button type="submit" class="btn btn-primary" id="submit-btn">Analyze</button>
         <span class="text-sm text-base-content/70" id="status"></span>
+        <span class="label-text-alt text-base-content/50 ml-auto">Ctrl+Enter to submit</span>
       </div>
     </form>
 
@@ -296,6 +297,17 @@
         setTimeout(() => { copyImprovedBtn.textContent = 'Copy'; }, 1500);
       }
     });
+
+    function handleCtrlEnter(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (!analyzeSection.classList.contains('hidden') && historySection.classList.contains('hidden')) {
+          form.requestSubmit();
+        }
+      }
+    }
+    promptInput.addEventListener('keydown', handleCtrlEnter);
+    inputField.addEventListener('keydown', handleCtrlEnter);
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
