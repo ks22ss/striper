@@ -52,6 +52,13 @@ def test_ui_includes_prompt_length_indicator():
     assert "chars" in r.text and "words" in r.text
 
 
+def test_ui_includes_input_length_indicator():
+    """UI includes input field length (chars/words) indicator."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "input-count" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
@@ -164,16 +171,11 @@ def test_history_requires_auth():
 
 
 def test_history_limit_clamped():
-    """History limit is clamped to prevent abuse (max 100)."""
+    """History limit over max (100) is rejected with 422 to prevent abuse."""
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
-        with patch(
-            "app.main.get_prompt_history",
-            return_value=[],
-        ) as mock_get:
-            r = client.get("/history?limit=9999")
-        assert r.status_code == 200
-        mock_get.assert_called_once_with(1, limit=100)
+        r = client.get("/history?limit=9999")
+        assert r.status_code == 422  # Query validation rejects limit > 100
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 

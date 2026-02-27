@@ -12,6 +12,7 @@ from app.auth import authenticate_user, create_access_token, get_current_user, h
 from app.database import (
     HISTORY_LIMIT_DEFAULT,
     HISTORY_LIMIT_MAX,
+    HISTORY_LIMIT_MIN,
     add_prompt_history,
     create_user,
     get_prompt_history,
