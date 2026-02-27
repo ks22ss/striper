@@ -3,13 +3,15 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from openai import AuthenticationError
 
 from app.auth import authenticate_user, create_access_token, get_current_user, hash_password
 from app.database import (
+    HISTORY_LIMIT_DEFAULT,
+    HISTORY_LIMIT_MAX,
     add_prompt_history,
     create_user,
     get_prompt_history,
@@ -134,7 +136,6 @@ async def analyze(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
-
 HISTORY_MAX_LIMIT = 100
 
 
@@ -143,10 +144,16 @@ def _clamp_history_limit(limit: int) -> int:
     return max(1, min(HISTORY_MAX_LIMIT, limit))
 
 
+
 @app.get("/history", response_model=PromptHistoryResponse)
 async def get_history(
     current_user: dict = Depends(get_current_user),
-    limit: int = 50,
+    limit: int = Query(
+        HISTORY_LIMIT_DEFAULT,
+        ge=HISTORY_LIMIT_MIN,
+        le=HISTORY_LIMIT_MAX,
+        description="Max history items to return",
+    ),
 ):
     """Return the current user's prompt analysis history."""
     rows = get_prompt_history(current_user["id"], limit=_clamp_history_limit(limit))
