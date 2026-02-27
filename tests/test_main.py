@@ -51,6 +51,14 @@ def test_ui_includes_prompt_length_indicator():
     assert "chars" in r.text and "words" in r.text
 
 
+def test_ui_includes_download_json_button():
+    """UI includes Download JSON button for exporting analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "download-json-btn" in r.text
+    assert "Download JSON" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

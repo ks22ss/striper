@@ -102,7 +102,10 @@
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
-            <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+            <div class="flex gap-3">
+              <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+              <button type="button" class="btn btn-ghost btn-xs" id="download-json-btn" title="Download full analysis as JSON">Download JSON</button>
+            </div>
           </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
@@ -150,8 +153,11 @@
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
+    const downloadJsonBtn = document.getElementById('download-json-btn');
 
     const promptCountEl = document.getElementById('prompt-count');
+
+    let lastAnalysisData = null;
 
     function updatePromptCount() {
       const text = promptInput.value;
@@ -312,6 +318,19 @@
       }
     });
 
+    downloadJsonBtn.addEventListener('click', () => {
+      if (!lastAnalysisData) return;
+      const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'striper-analysis.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
     function handleCtrlEnter(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
@@ -375,6 +394,8 @@
 
         // Improved prompt
         improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
+
+        lastAnalysisData = data;
 
         // Components
         const items = [];
