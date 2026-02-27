@@ -102,7 +102,10 @@
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
-            <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+            <div class="flex gap-1">
+              <button type="button" class="btn btn-ghost btn-xs" id="use-as-prompt-btn" title="Load into prompt field">Use as prompt</button>
+              <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+            </div>
           </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
@@ -150,6 +153,7 @@
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
+    const useAsPromptBtn = document.getElementById('use-as-prompt-btn');
 
     const promptCountEl = document.getElementById('prompt-count');
 
@@ -296,6 +300,14 @@
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
+    });
+
+    useAsPromptBtn.addEventListener('click', () => {
+      const text = improvedPromptEl.textContent || '';
+      if (!text) return;
+      promptInput.value = text;
+      updatePromptCount();
+      promptInput.focus();
     });
 
     copyImprovedBtn.addEventListener('click', async () => {
