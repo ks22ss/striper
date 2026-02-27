@@ -6,6 +6,10 @@ from pathlib import Path
 
 DB_PATH = Path(__file__).parent.parent / "striper.db"
 
+# History limit bounds; API validates 1..HISTORY_LIMIT_MAX
+HISTORY_LIMIT_DEFAULT = 50
+HISTORY_LIMIT_MAX = 100
+
 
 def _get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
@@ -99,7 +103,7 @@ def add_prompt_history(
         return cur.lastrowid
 
 
-def get_prompt_history(user_id: int, limit: int = 50) -> list[sqlite3.Row]:
+def get_prompt_history(user_id: int, limit: int = HISTORY_LIMIT_DEFAULT) -> list[sqlite3.Row]:
     """Fetch prompt history for a user, most recent first."""
     with get_db() as conn:
         cur = conn.execute(
