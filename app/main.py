@@ -137,6 +137,7 @@ async def analyze(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 @app.get("/history", response_model=PromptHistoryResponse)
 async def get_history(
     current_user: dict = Depends(get_current_user),
