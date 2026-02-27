@@ -137,13 +137,13 @@ async def analyze(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
+
 HISTORY_MAX_LIMIT = 100
 
 
 def _clamp_history_limit(limit: int) -> int:
     """Clamp history limit to a safe range to prevent abuse."""
     return max(1, min(HISTORY_MAX_LIMIT, limit))
-
 
 
 @app.get("/history", response_model=PromptHistoryResponse)

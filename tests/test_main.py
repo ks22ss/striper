@@ -43,7 +43,6 @@ def test_root_serves_ui():
     )
 
 
-
 def test_ui_includes_prompt_length_indicator():
     """UI includes prompt length (chars/words) indicator."""
     r = client.get("/")
