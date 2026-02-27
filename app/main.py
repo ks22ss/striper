@@ -12,6 +12,7 @@ from app.auth import authenticate_user, create_access_token, get_current_user, h
 from app.database import (
     HISTORY_LIMIT_DEFAULT,
     HISTORY_LIMIT_MAX,
+    HISTORY_LIMIT_MIN,
     add_prompt_history,
     create_user,
     get_prompt_history,
@@ -136,14 +137,6 @@ async def analyze(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
-HISTORY_MAX_LIMIT = 100
-
-
-def _clamp_history_limit(limit: int) -> int:
-    """Clamp history limit to a safe range to prevent abuse."""
-    return max(1, min(HISTORY_MAX_LIMIT, limit))
-
-
 
 @app.get("/history", response_model=PromptHistoryResponse)
 async def get_history(
@@ -156,7 +149,7 @@ async def get_history(
     ),
 ):
     """Return the current user's prompt analysis history."""
-    rows = get_prompt_history(current_user["id"], limit=_clamp_history_limit(limit))
+    rows = get_prompt_history(current_user["id"], limit=limit)
     items = [
         PromptHistoryItem(
             id=row["id"],
