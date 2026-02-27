@@ -34,6 +34,16 @@ def test_root_serves_ui():
     )
 
 
+def test_ui_includes_copy_and_history_reload():
+    """Served UI includes Copy button and history click-to-reload elements."""
+    r = client.get("/")
+    assert r.status_code == 200
+    html = r.text
+    assert "Copy" in html
+    assert "copy-improved-btn" in html
+    assert "history-item" in html or "Click to re-analyze" in html
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
@@ -61,8 +71,9 @@ def test_analyze_success():
     }
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
-        with patch("app.main.run_stripe_analysis", return_value=mock_result), patch(
-            "app.main.add_prompt_history"
+        with (
+            patch("app.main.run_stripe_analysis", return_value=mock_result),
+            patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Be concise. Always use bullet points."})
         assert r.status_code == 200
@@ -77,12 +88,12 @@ def test_analyze_success():
 
 def test_register_success():
     """Register creates user and returns token."""
-    with patch("app.main.get_user_by_username", return_value=None), patch(
-        "app.main.get_user_by_email", return_value=None
-    ), patch("app.main.create_user", return_value=42), patch(
-        "app.main.hash_password", return_value="hashed"
-    ), patch(
-        "app.main.create_access_token", return_value="jwt-token-123"
+    with (
+        patch("app.main.get_user_by_username", return_value=None),
+        patch("app.main.get_user_by_email", return_value=None),
+        patch("app.main.create_user", return_value=42),
+        patch("app.main.hash_password", return_value="hashed"),
+        patch("app.main.create_access_token", return_value="jwt-token-123"),
     ):
         r = client.post(
             "/register",
@@ -118,10 +129,13 @@ def test_register_username_taken():
 
 def test_login_success():
     """Login returns token for valid credentials."""
-    with patch(
-        "app.main.authenticate_user",
-        return_value={"id": 1, "username": "user", "email": "user@example.com"},
-    ), patch("app.main.create_access_token", return_value="jwt-token"):
+    with (
+        patch(
+            "app.main.authenticate_user",
+            return_value={"id": 1, "username": "user", "email": "user@example.com"},
+        ),
+        patch("app.main.create_access_token", return_value="jwt-token"),
+    ):
         r = client.post("/login", json={"username": "user", "password": "secret"})
     assert r.status_code == 200
     assert r.json()["access_token"] == "jwt-token"
@@ -177,8 +191,9 @@ def test_analyze_with_optional_input():
     }
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
-        with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run, patch(
-            "app.main.add_prompt_history"
+        with (
+            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.add_prompt_history"),
         ):
             r = client.post(
                 "/analyze",
@@ -208,17 +223,16 @@ def test_analyze_with_api_key_in_request():
     }
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
-        with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run, patch(
-            "app.main.add_prompt_history"
+        with (
+            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.add_prompt_history"),
         ):
             r = client.post(
                 "/analyze",
                 json={"prompt": "Test.", "api_key": "sk-user-provided-key"},
             )
         assert r.status_code == 200
-        mock_run.assert_called_once_with(
-            "Test.", user_input=None, api_key="sk-user-provided-key"
-        )
+        mock_run.assert_called_once_with("Test.", user_input=None, api_key="sk-user-provided-key")
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 
@@ -234,8 +248,9 @@ def test_analyze_empty_api_key_treated_as_none():
     }
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
-        with patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run, patch(
-            "app.main.add_prompt_history"
+        with (
+            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
         assert r.status_code == 200
