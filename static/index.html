@@ -88,6 +88,9 @@
     </form>
 
     <section class="mt-8 hidden" id="results">
+      <div class="flex justify-end mb-3">
+        <button type="button" class="btn btn-ghost btn-sm" id="copy-report-btn" title="Copy full analysis to clipboard">Copy report</button>
+      </div>
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
           <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered score</h3>
@@ -148,6 +151,9 @@
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
+    const copyReportBtn = document.getElementById('copy-report-btn');
+
+    let lastAnalysisData = null;
 
     function getAuthHeaders() {
       const token = localStorage.getItem(AUTH_KEY);
@@ -254,16 +260,23 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+        historyItems = data.items;
         historyListEl.innerHTML = data.items.length === 0
           ? '<li class="text-base-content/70">No history yet.</li>'
-          : data.items.map(item =>
-              `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
-                <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+          : data.items.map((item, i) =>
+              `<li class="card bg-base-200 border border-base-300 p-4">
+                <div class="flex justify-between items-start gap-2">
+                  <div class="min-w-0 flex-1 cursor-pointer hover:bg-base-300 rounded p-1 -m-1 history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
+                    <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
+                    <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+                  </div>
+                  <button type="button" class="btn btn-ghost btn-xs shrink-0" data-use-prompt-index="${i}" title="Load into form">Use</button>
+                </div>
               </li>`
             ).join('');
-        document.querySelectorAll('.history-item').forEach(el => {
-          el.addEventListener('click', () => {
+        historyListEl.querySelectorAll('.history-item').forEach(el => {
+          el.addEventListener('click', (e) => {
+            if (e.target.closest('[data-use-prompt-index]')) return;
             const prompt = el.getAttribute('data-prompt');
             if (prompt) {
               promptInput.value = prompt;
@@ -275,6 +288,19 @@
         });
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
+      }
+    });
+
+    historyListEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-use-prompt-index]');
+      if (!btn || historyItems.length === 0) return;
+      const idx = parseInt(btn.dataset.usePromptIndex, 10);
+      const item = historyItems[idx];
+      if (item) {
+        promptInput.value = item.prompt;
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+        promptInput.focus();
       }
     });
 
@@ -297,6 +323,41 @@
       }
     });
 
+    copyReportBtn.addEventListener('click', async () => {
+      if (!lastAnalysisData) return;
+      const d = lastAnalysisData;
+      const pct = Math.round(d.over_engineered_score * 100);
+      const scoreDesc = pct < 33 ? 'prompt is fairly optimal' : pct < 66 ? 'some redundancy detected' : 'prompt is over-engineered';
+      const kept = d.components_kept || [];
+      const removed = d.components_removed || [];
+      const lines = [
+        'Striper – Prompt Analysis Report',
+        '================================',
+        '',
+        'Over-engineered score: ' + pct + '% – ' + scoreDesc,
+        '',
+        'Improved prompt:',
+        '---------------',
+        d.improved_prompt || '(unchanged)',
+        '',
+        'Components kept:',
+        ...(kept.length ? kept.map(c => '  • ' + c) : ['  (none)']),
+        '',
+        'Components removed:',
+        ...(removed.length ? removed.map(c => '  • ' + c) : ['  (none)']),
+      ];
+      const report = lines.join('\n');
+      try {
+        await navigator.clipboard.writeText(report);
+        const orig = copyReportBtn.textContent;
+        copyReportBtn.textContent = 'Copied!';
+        setTimeout(() => { copyReportBtn.textContent = orig; }, 1500);
+      } catch {
+        copyReportBtn.textContent = 'Copy failed';
+        setTimeout(() => { copyReportBtn.textContent = 'Copy report'; }, 1500);
+      }
+    });
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const prompt = promptInput.value.trim();
@@ -308,6 +369,7 @@
       statusEl.textContent = 'Analyzing...';
       statusEl.className = 'text-sm text-primary';
       resultsEl.classList.add('hidden');
+      const startTime = Date.now();
 
       try {
         const body = { prompt };
@@ -364,8 +426,10 @@
           </li>`
         ).join('');
 
+        lastAnalysisData = data;
         resultsEl.classList.remove('hidden');
-        statusEl.textContent = 'Done';
+        const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
+        statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
         statusEl.className = 'text-sm text-base-content/70';
       } catch (err) {
         statusEl.textContent = err.message || 'Error';
