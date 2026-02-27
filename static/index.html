@@ -149,6 +149,7 @@
     const scoreLabel = document.getElementById('score-label');
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
+    const copyImprovedBtn = document.getElementById('copy-improved-btn');
 
     const promptCountEl = document.getElementById('prompt-count');
     const inputCountEl = document.getElementById('input-count');
@@ -233,46 +234,45 @@
       });
     });
 
-    loginForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    async function submitAuthForm(endpoint, payload, errorFallback) {
       clearAuthError();
-      const fd = new FormData(loginForm);
       try {
-        const res = await fetch('/login', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: fd.get('username'), password: fd.get('password') }),
+          body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Login failed');
+        if (!res.ok) throw new Error(data.detail || errorFallback);
         localStorage.setItem(AUTH_KEY, data.access_token);
         setLoggedIn(data.user);
       } catch (err) {
         showAuthError(err.message);
       }
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(loginForm);
+      await submitAuthForm(
+        '/login',
+        { username: fd.get('username'), password: fd.get('password') },
+        'Login failed'
+      );
     });
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      clearAuthError();
       const fd = new FormData(registerForm);
-      try {
-        const res = await fetch('/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username: fd.get('username'),
-            email: fd.get('email'),
-            password: fd.get('password'),
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Registration failed');
-        localStorage.setItem(AUTH_KEY, data.access_token);
-        setLoggedIn(data.user);
-      } catch (err) {
-        showAuthError(err.message);
-      }
+      await submitAuthForm(
+        '/register',
+        {
+          username: fd.get('username'),
+          email: fd.get('email'),
+          password: fd.get('password'),
+        },
+        'Registration failed'
+      );
     });
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
@@ -425,9 +425,7 @@
       return div.innerHTML;
     }
     function escapeAttr(s) {
-      const div = document.createElement('div');
-      div.textContent = s;
-      return div.innerHTML.replace(/"/g, '&quot;');
+      return escapeHtml(s).replace(/"/g, '&quot;');
     }
   </script>
 </body>
