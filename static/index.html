@@ -72,7 +72,7 @@
       <div id="auth-section" class="flex items-center gap-2">
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
-        <button type="button" class="btn btn-ghost btn-sm" id="history-btn">History</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
         <button type="button" class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
       </div>
     </header>
@@ -538,6 +538,15 @@
     }
     promptInput.addEventListener('keydown', handleCtrlEnter);
     inputField.addEventListener('keydown', handleCtrlEnter);
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
+        e.preventDefault();
+        if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
+          historyBtn.click();
+        }
+      }
+    });
 
     function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
       const body = { prompt };
