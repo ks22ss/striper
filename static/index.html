@@ -245,18 +245,38 @@
       logoutBtn.classList.add('hidden');
     }
 
-    function applyTheme(theme) {
-      document.documentElement.setAttribute('data-theme', theme);
-      themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
-      themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
-      localStorage.setItem(THEME_KEY, theme);
+    const THEMES = ['dark', 'light', 'system'];
+
+    function getEffectiveTheme(preference) {
+      if (preference === 'system') {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      return preference;
+    }
+
+    function applyTheme(preference) {
+      const effective = getEffectiveTheme(preference);
+      document.documentElement.setAttribute('data-theme', effective);
+      const icons = { dark: '🌙', light: '☀️', system: '🌐' };
+      const labels = { dark: 'Switch to light', light: 'Switch to dark', system: 'Switch to dark' };
+      themeToggle.textContent = icons[preference] || icons.dark;
+      themeToggle.setAttribute('aria-label', (labels[preference] || labels.dark) + ' theme');
+      localStorage.setItem(THEME_KEY, preference);
     }
 
     const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
     applyTheme(savedTheme);
 
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (localStorage.getItem(THEME_KEY) === 'system') {
+        document.documentElement.setAttribute('data-theme', getEffectiveTheme('system'));
+      }
+    });
+
     themeToggle.addEventListener('click', () => {
-      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      const current = localStorage.getItem(THEME_KEY) || 'dark';
+      const idx = THEMES.indexOf(current);
+      const next = THEMES[(idx + 1) % THEMES.length];
       applyTheme(next);
     });
 
