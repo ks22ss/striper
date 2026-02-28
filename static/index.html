@@ -338,6 +338,14 @@
 
     clearFormBtn.addEventListener('click', clearForm);
 
+    useImprovedBtn.addEventListener('click', () => {
+      const text = improvedPromptEl.textContent || '';
+      if (!text || text === '(unchanged)') return;
+      promptInput.value = text;
+      updatePromptCount();
+      promptInput.focus();
+    });
+
     copyImprovedBtn.addEventListener('click', async () => {
       const text = improvedPromptEl.textContent || '';
       if (!text) return;
@@ -350,14 +358,6 @@
         copyImprovedBtn.textContent = 'Copy failed';
         setTimeout(() => { copyImprovedBtn.textContent = 'Copy'; }, 1500);
       }
-    });
-
-    useImprovedBtn.addEventListener('click', () => {
-      const text = improvedPromptEl.textContent || '';
-      if (!text || text === '(unchanged)') return;
-      promptInput.value = text;
-      updatePromptCount();
-      promptInput.focus();
     });
 
     downloadJsonBtn.addEventListener('click', () => {
