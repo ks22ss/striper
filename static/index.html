@@ -40,7 +40,7 @@
       <form id="login-form" class="space-y-3 max-w-sm">
         <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required />
         <input type="password" name="password" placeholder="Password" class="input input-bordered w-full" required />
-        <button type="submit" class="btn btn-primary">Login</button>
+        <button type="submit" class="btn btn-primary" id="login-submit-btn">Login</button>
       </form>
       <p class="text-sm text-base-content/60 mt-4">Don't have an account? <a href="#/register" class="link link-primary">Register</a></p>
       <p class="text-sm text-error mt-2 hidden" id="login-error"></p>
@@ -57,7 +57,7 @@
         <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required minlength="2" />
         <input type="email" name="email" placeholder="Email" class="input input-bordered w-full" required />
         <input type="password" name="password" placeholder="Password (min 8 chars)" class="input input-bordered w-full" required minlength="8" />
-        <button type="submit" class="btn btn-primary">Register</button>
+        <button type="submit" class="btn btn-primary" id="register-submit-btn">Register</button>
       </form>
       <p class="text-sm text-base-content/60 mt-4">Already have an account? <a href="#/login" class="link link-primary">Login</a></p>
       <p class="text-sm text-error mt-2 hidden" id="register-error"></p>
@@ -369,8 +369,14 @@
     window.addEventListener('hashchange', route);
     route();
 
-    async function submitAuthForm(endpoint, payload, errorEl, defaultError) {
+    async function submitAuthForm(endpoint, payload, errorEl, defaultError, btnEl, loadingText) {
       clearFormError(errorEl);
+      let originalText = '';
+      if (btnEl && loadingText) {
+        btnEl.disabled = true;
+        originalText = btnEl.textContent;
+        btnEl.textContent = loadingText;
+      }
       try {
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -383,8 +389,16 @@
         setLoggedIn(data.user);
       } catch (err) {
         showFormError(errorEl, err.message);
+      } finally {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = originalText;
+        }
       }
     }
+
+    const loginSubmitBtn = document.getElementById('login-submit-btn');
+    const registerSubmitBtn = document.getElementById('register-submit-btn');
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -393,7 +407,9 @@
         '/login',
         { username: fd.get('username'), password: fd.get('password') },
         loginErrorEl,
-        'Login failed'
+        'Login failed',
+        loginSubmitBtn,
+        'Logging in...'
       );
     });
 
@@ -408,7 +424,9 @@
           password: fd.get('password'),
         },
         registerErrorEl,
-        'Registration failed'
+        'Registration failed',
+        registerSubmitBtn,
+        'Creating account...'
       );
     });
 
