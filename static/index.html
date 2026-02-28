@@ -414,7 +414,7 @@
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
-    historyBtn.addEventListener('click', async () => {
+    async function loadHistory() {
       analyzeSection.classList.add('hidden');
       historySection.classList.remove('hidden');
       historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
@@ -444,7 +444,9 @@
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
       }
-    });
+    }
+
+    historyBtn.addEventListener('click', loadHistory);
 
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
