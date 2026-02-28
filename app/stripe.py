@@ -76,48 +76,68 @@ def _build_improved_prompt(components_kept: list[str], fallback: str) -> str:
     return " ".join(components_kept) if components_kept else fallback
 
 
-def _is_component_redundant(
+def _test_removal_similarity(
     components: list[str],
-    index: int,
+    remove_index: int,
+    active_indices: set[int],
     baseline_embedding: list[float],
     user_input: str | None = None,
     api_key: str | None = None,
-) -> bool:
+) -> float:
     """
-    Check if removing the component at index yields output similar to baseline.
-    Strips the component, calls model, compares embeddings.
+    Test removing component at *remove_index* from the current active set.
+    Returns cosine similarity between the stripped output and the baseline.
     """
-    stripped_components = components[:index] + components[index + 1 :]
-    stripped_prompt = " ".join(stripped_components)
+    remaining = sorted(active_indices - {remove_index})
+    if not remaining:
+        return 0.0
+    stripped_prompt = " ".join(components[i] for i in remaining)
     stripped_full = _build_full_prompt(stripped_prompt, user_input)
     stripped_output = call_model(stripped_full, api_key=api_key)
     stripped_embedding = get_embedding(stripped_output, api_key=api_key)
-    sim = cosine_similarity(baseline_embedding, stripped_embedding)
-    return sim >= _get_similarity_threshold()
+    return cosine_similarity(baseline_embedding, stripped_embedding)
+
+
+_LIST_MARKER_RE = re.compile(r"^\s*[-•*]|\s*\d+[.)]\s")
 
 
 def parse_components(prompt: str) -> list[str]:
     """
     Parse prompt into components (sentences/clauses).
     Splits on newlines, then on sentence boundaries (. ! ?), filters empty.
+    Lines that start with list markers (-, •, *, 1.) are kept as single units
+    so that multi-sentence list items are not broken apart.
     """
-    # First split by newlines to preserve structure
     lines = [line.strip() for line in prompt.split("\n") if line.strip()]
     components: list[str] = []
 
     for line in lines:
-        # Split each line by sentence-ending punctuation
-        parts = re.split(r"(?<=[.!?])\s+", line)
-        for part in parts:
-            part = part.strip()
-            if part:
-                components.append(part)
+        if _LIST_MARKER_RE.match(line):
+            components.append(line)
+        else:
+            parts = re.split(r"(?<=[.!?])\s+", line)
+            for part in parts:
+                part = part.strip()
+                if part:
+                    components.append(part)
 
-    # If we got nothing (e.g. no periods), treat whole prompt as one component
     if not components:
         components = [prompt.strip()] if prompt.strip() else []
 
     return components
+
+
+def _validate_prompt(
+    prompt_text: str,
+    baseline_embedding: list[float],
+    user_input: str | None = None,
+    api_key: str | None = None,
+) -> float:
+    """Run a prompt through the model and return similarity to the baseline."""
+    full = _build_full_prompt(prompt_text, user_input)
+    output = call_model(full, api_key=api_key)
+    emb = get_embedding(output, api_key=api_key)
+    return cosine_similarity(baseline_embedding, emb)
 
 
 def run_stripe_analysis(
@@ -127,9 +147,19 @@ def run_stripe_analysis(
 ) -> dict:
     """
     Run the Stripe method analysis.
-    Returns dict with over_engineered_score, improved_prompt, components_removed, components_kept.
-    user_input: optional text that the prompt will process (e.g. sample user message).
-    api_key: optional OpenAI API key; if not provided, OPENAI_API_KEY env var is used.
+
+    Uses a three-phase approach:
+      1. Sequential cumulative removal (reverse order) — test each component's
+         redundancy in the context of already-removed components, starting from
+         the end (auxiliary/formatting components tend to appear last).
+      2. Final validation — verify the improved prompt as a whole still produces
+         output similar to the baseline.
+      3. Greedy recovery — if validation fails, add back removed components
+         front-first (core task components tend to appear first) until the
+         improved prompt is valid again.
+
+    Returns dict with over_engineered_score, improved_prompt,
+    components_removed, components_kept.
     """
     components = parse_components(prompt)
     if not components:
@@ -138,19 +168,51 @@ def run_stripe_analysis(
     full_prompt = _build_full_prompt(prompt, user_input)
     baseline_output = call_model(full_prompt, api_key=api_key)
     baseline_embedding = get_embedding(baseline_output, api_key=api_key)
+    threshold = _get_similarity_threshold()
 
-    redundant_indices: set[int] = set()
-    for i in range(len(components)):
-        if _is_component_redundant(
-            components, i, baseline_embedding, user_input=user_input, api_key=api_key
-        ):
-            redundant_indices.add(i)
+    # --- Phase 1: Sequential cumulative removal (reverse order) ---
+    active_indices = set(range(len(components)))
+    for i in reversed(range(len(components))):
+        sim = _test_removal_similarity(
+            components, i, active_indices, baseline_embedding, user_input, api_key
+        )
+        if sim >= threshold:
+            active_indices.discard(i)
 
+    # --- Phase 2: Validate the combined improved prompt ---
+    redundant_indices = set(range(len(components))) - active_indices
     components_kept, components_removed = _classify_components(components, redundant_indices)
-
     improved_prompt = _build_improved_prompt(components_kept, prompt)
-    over_engineered_score = len(redundant_indices) / len(components) if components else 0.0
 
+    validation_sim = _validate_prompt(
+        improved_prompt, baseline_embedding, user_input, api_key
+    )
+
+    # --- Phase 3: Greedy recovery if validation failed ---
+    if validation_sim < threshold and redundant_indices:
+        for idx in sorted(redundant_indices):
+            active_indices.add(idx)
+            candidate_kept = [components[j] for j in sorted(active_indices)]
+            candidate_prompt = " ".join(candidate_kept)
+            validation_sim = _validate_prompt(
+                candidate_prompt, baseline_embedding, user_input, api_key
+            )
+            if validation_sim >= threshold:
+                break
+
+        redundant_indices = set(range(len(components))) - active_indices
+        components_kept, components_removed = _classify_components(
+            components, redundant_indices
+        )
+        improved_prompt = _build_improved_prompt(components_kept, prompt)
+
+    over_engineered_score = (
+        len(redundant_indices) / len(components) if components else 0.0
+    )
     return _build_analysis_result(
-        over_engineered_score, improved_prompt, components_removed, components_kept, len(components)
+        over_engineered_score,
+        improved_prompt,
+        components_removed,
+        components_kept,
+        len(components),
     )
