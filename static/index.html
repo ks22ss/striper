@@ -107,6 +107,7 @@
             <div class="flex gap-2">
               <button type="button" class="btn btn-primary btn-sm" id="use-improved-btn" title="Use as prompt">Use as prompt</button>
               <button type="button" class="btn btn-outline btn-sm" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+              <button type="button" class="btn btn-outline btn-sm" id="copy-report-btn" title="Copy full analysis report">Copy report</button>
               <button type="button" class="btn btn-outline btn-sm" id="download-json-btn" title="Download full analysis as JSON">Download JSON</button>
             </div>
           </div>
@@ -160,6 +161,7 @@
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
     const useImprovedBtn = document.getElementById('use-improved-btn');
     const clearFormBtn = document.getElementById('clear-form-btn');
+    const copyReportBtn = document.getElementById('copy-report-btn');
     const downloadJsonBtn = document.getElementById('download-json-btn');
 
     const promptCountEl = document.getElementById('prompt-count');
@@ -379,6 +381,35 @@
     copyImprovedBtn.addEventListener('click', () =>
       copyWithFeedback(improvedPromptEl.textContent || '', copyImprovedBtn)
     );
+
+    copyReportBtn.addEventListener('click', async () => {
+      if (!lastAnalysisData) return;
+      const score = Math.round((lastAnalysisData.over_engineered_score || 0) * 100);
+      const improved = lastAnalysisData.improved_prompt || '(unchanged)';
+      const kept = (lastAnalysisData.components_kept || []).map((c) => '  - ' + c).join('\n');
+      const removed = (lastAnalysisData.components_removed || []).map((c) => '  - ' + c).join('\n');
+      const report = [
+        'Over-engineered score: ' + score + '%',
+        '',
+        'Improved prompt:',
+        improved,
+        '',
+        'Components kept:',
+        kept || '  (none)',
+        '',
+        'Components removed:',
+        removed || '  (none)',
+      ].join('\n');
+      try {
+        await navigator.clipboard.writeText(report);
+        const orig = copyReportBtn.textContent;
+        copyReportBtn.textContent = 'Copied!';
+        setTimeout(() => { copyReportBtn.textContent = orig; }, 1500);
+      } catch {
+        copyReportBtn.textContent = 'Copy failed';
+        setTimeout(() => { copyReportBtn.textContent = 'Copy report'; }, 1500);
+      }
+    });
 
     downloadJsonBtn.addEventListener('click', () => {
       if (!lastAnalysisData) return;
