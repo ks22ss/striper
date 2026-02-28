@@ -301,41 +301,29 @@
       return hash.startsWith('/') ? hash : '/' + hash;
     }
 
+    /**
+     * Resolve path + auth to page and optional redirect. SRP: single place for routing rules.
+     * Returns { pageId, redirect? }.
+     */
+    function resolveRoute(path, isAuth) {
+      if (isAuth) {
+        if (path === '/' || path === '/login' || path === '/register') return { pageId: 'app-page', redirect: '#/app' };
+        if (path === '/app') return { pageId: 'app-page' };
+      } else {
+        if (path === '/app') return { pageId: 'login-page', redirect: '#/login' };
+        if (path === '/') return { pageId: 'landing-page' };
+        if (path === '/login') return { pageId: 'login-page' };
+        if (path === '/register') return { pageId: 'register-page' };
+      }
+      return { pageId: 'landing-page', redirect: '#/' };
+    }
+
     function route() {
       const path = getRoute();
       const isAuth = !!localStorage.getItem(AUTH_KEY);
-
-      if (isAuth) {
-        if (path === '/' || path === '/login' || path === '/register') {
-          showPage('app-page');
-          window.location.hash = '#/app';
-          return;
-        }
-        if (path === '/app') {
-          showPage('app-page');
-          return;
-        }
-      } else {
-        if (path === '/app') {
-          showPage('login-page');
-          window.location.hash = '#/login';
-          return;
-        }
-        if (path === '/') {
-          showPage('landing-page');
-          return;
-        }
-        if (path === '/login') {
-          showPage('login-page');
-          return;
-        }
-        if (path === '/register') {
-          showPage('register-page');
-          return;
-        }
-      }
-      showPage('landing-page');
-      window.location.hash = '#/';
+      const { pageId, redirect } = resolveRoute(path, isAuth);
+      if (redirect) window.location.hash = redirect;
+      showPage(pageId);
     }
 
     const THEMES = ['dark', 'light', 'system'];
