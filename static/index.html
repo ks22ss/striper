@@ -24,7 +24,8 @@
         <p class="text-base-content/60 text-sm">Get a score, an improved prompt, and a breakdown of kept vs removed components.</p>
       </div>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="#/login" class="btn btn-primary btn-lg" id="landing-login-btn">Login</a>
+        <a href="#/login" class="btn btn-primary btn-lg" id="landing-get-started-btn">Get started</a>
+        <a href="#/login" class="btn btn-outline btn-lg" id="landing-login-btn">Login</a>
         <a href="#/register" class="btn btn-outline btn-lg" id="landing-register-btn">Register</a>
       </div>
     </section>
@@ -413,9 +414,7 @@
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
-    historyBtn.addEventListener('click', async () => {
-      analyzeSection.classList.add('hidden');
-      historySection.classList.remove('hidden');
+    async function loadHistory() {
       historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
       try {
         const res = await fetch('/history', { headers: getAuthHeaders() });
@@ -443,6 +442,12 @@
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
       }
+    }
+
+    historyBtn.addEventListener('click', async () => {
+      analyzeSection.classList.add('hidden');
+      historySection.classList.remove('hidden');
+      await loadHistory();
     });
 
     document.getElementById('history-back').addEventListener('click', () => {
