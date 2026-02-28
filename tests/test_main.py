@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 from openai import AuthenticationError
 
@@ -162,12 +163,17 @@ def test_history_requires_auth():
     assert r.status_code == 401
 
 
-def test_history_limit_clamped():
-    """History limit over max (100) is rejected with 422 to prevent abuse."""
+@pytest.mark.parametrize(
+    "limit",
+    [0, -1, 500, 9999],
+    ids=["zero", "negative", "over_max", "very_large"],
+)
+def test_history_rejects_invalid_limit(limit):
+    """History rejects invalid limits (0, negative, or >100) with 422."""
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
-        r = client.get("/history?limit=9999")
-        assert r.status_code == 422  # Query validation rejects limit > 100
+        r = client.get(f"/history?limit={limit}")
+        assert r.status_code == 422
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 
@@ -193,36 +199,6 @@ def test_history_success():
         data = r.json()
         assert len(data["items"]) == 1
         assert data["items"][0]["prompt"] == "Be nice."
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
-
-
-def test_history_rejects_limit_zero():
-    """History rejects limit=0 (SQLite LIMIT 0 is pointless; validate ge=1)."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
-        r = client.get("/history?limit=0")
-        assert r.status_code == 422
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
-
-
-def test_history_rejects_negative_limit():
-    """History rejects negative limit (SQLite LIMIT -1 returns all rows = DoS)."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
-        r = client.get("/history?limit=-1")
-        assert r.status_code == 422
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
-
-
-def test_history_rejects_limit_over_max():
-    """History rejects limit > 100 to cap response size."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
-        r = client.get("/history?limit=500")
-        assert r.status_code == 422
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 
