@@ -132,10 +132,11 @@ def test_ui_includes_clear_form_button():
 
 
 def test_ui_includes_landing_page():
-    """UI includes landing page with Login and Register CTAs."""
+    """UI includes landing page with Get started, Login and Register CTAs."""
     r = client.get("/")
     assert r.status_code == 200
     assert "landing-page" in r.text
+    assert "landing-get-started-btn" in r.text or "Get started" in r.text
     assert "landing-login-btn" in r.text or 'href="#/login"' in r.text
     assert "landing-register-btn" in r.text or 'href="#/register"' in r.text
 
@@ -165,6 +166,14 @@ def test_ui_includes_app_page():
     assert "app-page" in r.text
     assert "logout-btn" in r.text
     assert "Logout" in r.text
+
+
+def test_ui_includes_history_keyboard_shortcut():
+    """UI includes history button with Ctrl+Shift+H shortcut hint."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "history-btn" in r.text
+    assert "Ctrl+Shift+H" in r.text
 
 
 def test_analyze_unauthorized():

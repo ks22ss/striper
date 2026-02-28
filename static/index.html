@@ -24,7 +24,8 @@
         <p class="text-base-content/60 text-sm">Get a score, an improved prompt, and a breakdown of kept vs removed components.</p>
       </div>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
-        <a href="#/login" class="btn btn-primary btn-lg" id="landing-login-btn">Login</a>
+        <a href="#/login" class="btn btn-primary btn-lg" id="landing-get-started-btn">Get started</a>
+        <a href="#/login" class="btn btn-outline btn-lg" id="landing-login-btn">Login</a>
         <a href="#/register" class="btn btn-outline btn-lg" id="landing-register-btn">Register</a>
       </div>
     </section>
@@ -72,7 +73,7 @@
       <div id="auth-section" class="flex items-center gap-2">
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
-        <button type="button" class="btn btn-ghost btn-sm" id="history-btn">History</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
         <button type="button" class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
       </div>
     </header>
@@ -413,7 +414,7 @@
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
-    historyBtn.addEventListener('click', async () => {
+    async function loadHistory() {
       analyzeSection.classList.add('hidden');
       historySection.classList.remove('hidden');
       historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
@@ -443,7 +444,9 @@
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
       }
-    });
+    }
+
+    historyBtn.addEventListener('click', loadHistory);
 
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
@@ -523,6 +526,15 @@
     }
     promptInput.addEventListener('keydown', handleCtrlEnter);
     inputField.addEventListener('keydown', handleCtrlEnter);
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
+        e.preventDefault();
+        if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
+          historyBtn.click();
+        }
+      }
+    });
 
     function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
       const body = { prompt };
