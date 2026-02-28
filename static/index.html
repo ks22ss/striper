@@ -251,21 +251,13 @@
       return h;
     }
 
-    function showLoginError(msg) {
-      loginErrorEl.textContent = msg;
-      loginErrorEl.classList.remove('hidden');
+    function showFormError(el, msg) {
+      el.textContent = msg;
+      el.classList.remove('hidden');
     }
-    function clearLoginError() {
-      loginErrorEl.textContent = '';
-      loginErrorEl.classList.add('hidden');
-    }
-    function showRegisterError(msg) {
-      registerErrorEl.textContent = msg;
-      registerErrorEl.classList.remove('hidden');
-    }
-    function clearRegisterError() {
-      registerErrorEl.textContent = '';
-      registerErrorEl.classList.add('hidden');
+    function clearFormError(el) {
+      el.textContent = '';
+      el.classList.add('hidden');
     }
 
     function hideAllPages() {
@@ -376,54 +368,47 @@
     window.addEventListener('hashchange', route);
     route();
 
-    async function submitLogin(payload) {
-      clearLoginError();
+    async function submitAuthForm(endpoint, payload, errorEl, defaultError) {
+      clearFormError(errorEl);
       try {
-        const res = await fetch('/login', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Login failed');
+        if (!res.ok) throw new Error(data.detail || defaultError);
         localStorage.setItem(AUTH_KEY, data.access_token);
         setLoggedIn(data.user);
       } catch (err) {
-        showLoginError(err.message);
-      }
-    }
-
-    async function submitRegister(payload) {
-      clearRegisterError();
-      try {
-        const res = await fetch('/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Registration failed');
-        localStorage.setItem(AUTH_KEY, data.access_token);
-        setLoggedIn(data.user);
-      } catch (err) {
-        showRegisterError(err.message);
+        showFormError(errorEl, err.message);
       }
     }
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(loginForm);
-      await submitLogin({ username: fd.get('username'), password: fd.get('password') });
+      await submitAuthForm(
+        '/login',
+        { username: fd.get('username'), password: fd.get('password') },
+        loginErrorEl,
+        'Login failed'
+      );
     });
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(registerForm);
-      await submitRegister({
-        username: fd.get('username'),
-        email: fd.get('email'),
-        password: fd.get('password'),
-      });
+      await submitAuthForm(
+        '/register',
+        {
+          username: fd.get('username'),
+          email: fd.get('email'),
+          password: fd.get('password'),
+        },
+        registerErrorEl,
+        'Registration failed'
+      );
     });
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
