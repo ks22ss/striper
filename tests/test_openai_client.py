@@ -61,7 +61,7 @@ def test_call_model_returns_response_text():
     assert result == "Hello, world!"
     mock_client.chat.completions.create.assert_called_once()
     call_kwargs = mock_client.chat.completions.create.call_args.kwargs
-    assert call_kwargs["model"] == "gpt-4o-mini"
+    assert call_kwargs["model"] == "stepfun/step-3.5-flash:free"
     assert call_kwargs["messages"][1]["content"] == "Test prompt"
 
 
@@ -99,7 +99,7 @@ def test_get_embedding_returns_vector():
 
     assert result == mock_embedding
     mock_client.embeddings.create.assert_called_once_with(
-        model="text-embedding-3-small",
+        model="thenlper/gte-base",
         input="Some text",
     )
 

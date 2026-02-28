@@ -27,9 +27,7 @@ def get_client() -> OpenAI:
         elif openai_key:
             _client = OpenAI(api_key=openai_key)
         else:
-            raise ValueError(
-                "Set OPENROUTER_API_KEY or OPENAI_API_KEY environment variable"
-            )
+            raise ValueError("Set OPENROUTER_API_KEY or OPENAI_API_KEY environment variable")
     return _client
 
 
@@ -38,7 +36,11 @@ def _resolve_client(api_key: str | None) -> OpenAI:
     return OpenAI(api_key=api_key) if api_key else get_client()
 
 
-def call_model(prompt: str, model: str = "stepfun/step-3.5-flash:free", api_key: str | None = None) -> str:
+def call_model(
+    prompt: str,
+    model: str = "stepfun/step-3.5-flash:free",
+    api_key: str | None = None,
+) -> str:
     """Call the model with a prompt and return the response text."""
     client = _resolve_client(api_key)
     response = client.chat.completions.create(
