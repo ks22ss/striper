@@ -1,5 +1,6 @@
 """Tests for FastAPI app endpoints."""
 
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
@@ -11,19 +12,29 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_app_imports_with_auth_dependencies():
-    """Regression: app imports require bcrypt, python-jose, email-validator in requirements.txt."""
-    from app.auth import hash_password
-
-    assert callable(hash_password)
-
-
 # Fake user for protected route tests (avoids DB setup)
 FAKE_USER = {"id": 1, "username": "testuser", "email": "test@example.com"}
 
 
 async def _fake_get_current_user():
     return FAKE_USER
+
+
+@contextmanager
+def with_fake_user():
+    """Context manager to override get_current_user with FAKE_USER for protected route tests."""
+    app.dependency_overrides[get_current_user] = _fake_get_current_user
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_app_imports_with_auth_dependencies():
+    """Regression: app imports require bcrypt, python-jose, email-validator in requirements.txt."""
+    from app.auth import hash_password
+
+    assert callable(hash_password)
 
 
 def test_health():
@@ -74,12 +85,9 @@ def test_analyze_unauthorized():
 
 def test_analyze_requires_prompt():
     """Analyze endpoint requires non-empty prompt."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         r = client.post("/analyze", json={})
-        assert r.status_code == 422  # Validation error
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 422  # Validation error
 
 
 def test_analyze_success():
@@ -91,21 +99,18 @@ def test_analyze_success():
         "components_kept": ["Be concise."],
         "total_components": 2,
     }
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         with (
             patch("app.main.run_stripe_analysis", return_value=mock_result),
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Be concise. Always use bullet points."})
-        assert r.status_code == 200
-        data = r.json()
-        assert data["over_engineered_score"] == 0.25
-        assert data["improved_prompt"] == "Be concise."
-        assert "components_removed" in data
-        assert "components_kept" in data
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["over_engineered_score"] == 0.25
+    assert data["improved_prompt"] == "Be concise."
+    assert "components_removed" in data
+    assert "components_kept" in data
 
 
 def test_register_success():
@@ -179,18 +184,14 @@ def test_history_requires_auth():
 
 def test_history_limit_clamped():
     """History limit over max (100) is rejected with 422 to prevent abuse."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         r = client.get("/history?limit=9999")
-        assert r.status_code == 422  # Query validation rejects limit > 100
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 422  # Query validation rejects limit > 100
 
 
 def test_history_success():
     """History returns user's prompt records."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         with patch(
             "app.main.get_prompt_history",
             return_value=[
@@ -204,54 +205,40 @@ def test_history_success():
             ],
         ):
             r = client.get("/history")
-        assert r.status_code == 200
-        data = r.json()
-        assert len(data["items"]) == 1
-        assert data["items"][0]["prompt"] == "Be nice."
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["items"]) == 1
+    assert data["items"][0]["prompt"] == "Be nice."
 
 
 def test_history_rejects_limit_zero():
     """History rejects limit=0 (SQLite LIMIT 0 is pointless; validate ge=1)."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         r = client.get("/history?limit=0")
-        assert r.status_code == 422
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 422
 
 
 def test_history_rejects_negative_limit():
     """History rejects negative limit (SQLite LIMIT -1 returns all rows = DoS)."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         r = client.get("/history?limit=-1")
-        assert r.status_code == 422
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 422
 
 
 def test_history_rejects_limit_over_max():
     """History rejects limit > 100 to cap response size."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         r = client.get("/history?limit=500")
-        assert r.status_code == 422
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 422
 
 
 def test_history_accepts_valid_limit():
     """History accepts limit within 1..100 and passes to get_prompt_history."""
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         with patch("app.main.get_prompt_history", return_value=[]) as mock_get:
             r = client.get("/history?limit=10")
-        assert r.status_code == 200
-        mock_get.assert_called_once_with(1, limit=10)
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 200
+    mock_get.assert_called_once_with(1, limit=10)
 
 
 def test_analyze_with_optional_input():
@@ -263,8 +250,7 @@ def test_analyze_with_optional_input():
         "components_kept": ["Summarize briefly."],
         "total_components": 1,
     }
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         with (
             patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
@@ -276,14 +262,12 @@ def test_analyze_with_optional_input():
                     "input": "This is a long document about AI and machine learning.",
                 },
             )
-        assert r.status_code == 200
-        mock_run.assert_called_once_with(
-            "Summarize briefly.",
-            user_input="This is a long document about AI and machine learning.",
-            api_key=None,
-        )
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 200
+    mock_run.assert_called_once_with(
+        "Summarize briefly.",
+        user_input="This is a long document about AI and machine learning.",
+        api_key=None,
+    )
 
 
 def test_analyze_with_api_key_in_request():
@@ -295,8 +279,7 @@ def test_analyze_with_api_key_in_request():
         "components_kept": ["Test."],
         "total_components": 1,
     }
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         with (
             patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
@@ -305,10 +288,8 @@ def test_analyze_with_api_key_in_request():
                 "/analyze",
                 json={"prompt": "Test.", "api_key": "sk-user-provided-key"},
             )
-        assert r.status_code == 200
-        mock_run.assert_called_once_with("Test.", user_input=None, api_key="sk-user-provided-key")
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 200
+    mock_run.assert_called_once_with("Test.", user_input=None, api_key="sk-user-provided-key")
 
 
 def test_analyze_empty_api_key_treated_as_none():
@@ -320,17 +301,14 @@ def test_analyze_empty_api_key_treated_as_none():
         "components_kept": ["Test."],
         "total_components": 1,
     }
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         with (
             patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
-        assert r.status_code == 200
-        mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 200
+    mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
 
 
 def test_analyze_invalid_api_key_returns_503():
@@ -338,14 +316,11 @@ def test_analyze_invalid_api_key_returns_503():
     resp = MagicMock()
     resp.status_code = 401
     resp.headers = {}
-    app.dependency_overrides[get_current_user] = _fake_get_current_user
-    try:
+    with with_fake_user():
         with patch(
             "app.main.run_stripe_analysis",
             side_effect=AuthenticationError("Invalid key", response=resp, body=None),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "sk-invalid"})
-        assert r.status_code == 503
-        assert "Invalid" in r.json()["detail"]
-    finally:
-        app.dependency_overrides.pop(get_current_user, None)
+    assert r.status_code == 503
+    assert "Invalid" in r.json()["detail"]
