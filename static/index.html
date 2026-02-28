@@ -429,9 +429,7 @@
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
-    historyBtn.addEventListener('click', async () => {
-      analyzeSection.classList.add('hidden');
-      historySection.classList.remove('hidden');
+    async function loadHistory() {
       historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
       try {
         const res = await fetch('/history', { headers: getAuthHeaders() });
@@ -459,6 +457,12 @@
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
       }
+    }
+
+    historyBtn.addEventListener('click', async () => {
+      analyzeSection.classList.add('hidden');
+      historySection.classList.remove('hidden');
+      await loadHistory();
     });
 
     document.getElementById('history-back').addEventListener('click', () => {
