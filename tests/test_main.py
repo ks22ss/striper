@@ -58,6 +58,14 @@ def test_ui_includes_input_length_indicator():
     assert "input-count" in r.text
 
 
+def test_ui_includes_clear_form_button():
+    """UI includes Clear button to reset form fields."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "clear-form-btn" in r.text
+    assert "Clear" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
