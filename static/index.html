@@ -185,19 +185,20 @@
 
     let lastAnalysisData = null;
 
-    function updatePromptCount() {
-      const text = promptInput.value;
-      const chars = text.length;
-      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-      promptCountEl.textContent = formatCharWordCount(chars, words);
-    }
-
-    function updateInputCount() {
-      const text = inputField.value;
+    function updateCharWordCount(textareaEl, targetEl, suffix) {
+      const text = textareaEl.value;
       const chars = text.length;
       const words = text.trim() ? text.trim().split(/\s+/).length : 0;
       const count = formatCharWordCount(chars, words);
-      inputCountEl.textContent = count + ' · Sample text the prompt will process';
+      targetEl.textContent = suffix ? count + ' · ' + suffix : count;
+    }
+
+    function updatePromptCount() {
+      updateCharWordCount(promptInput, promptCountEl);
+    }
+
+    function updateInputCount() {
+      updateCharWordCount(inputField, inputCountEl, 'Sample text the prompt will process');
     }
 
     promptInput.addEventListener('input', updatePromptCount);
@@ -382,13 +383,13 @@
       copyWithFeedback(improvedPromptEl.textContent || '', copyImprovedBtn)
     );
 
-    copyReportBtn.addEventListener('click', async () => {
-      if (!lastAnalysisData) return;
-      const score = Math.round((lastAnalysisData.over_engineered_score || 0) * 100);
-      const improved = lastAnalysisData.improved_prompt || '(unchanged)';
-      const kept = (lastAnalysisData.components_kept || []).map((c) => '  - ' + c).join('\n');
-      const removed = (lastAnalysisData.components_removed || []).map((c) => '  - ' + c).join('\n');
-      const report = [
+    function buildReportText(data) {
+      if (!data) return '';
+      const score = Math.round((data.over_engineered_score || 0) * 100);
+      const improved = data.improved_prompt || '(unchanged)';
+      const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
+      const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
+      return [
         'Over-engineered score: ' + score + '%',
         '',
         'Improved prompt:',
@@ -400,16 +401,11 @@
         'Components removed:',
         removed || '  (none)',
       ].join('\n');
-      try {
-        await navigator.clipboard.writeText(report);
-        const orig = copyReportBtn.textContent;
-        copyReportBtn.textContent = 'Copied!';
-        setTimeout(() => { copyReportBtn.textContent = orig; }, 1500);
-      } catch {
-        copyReportBtn.textContent = 'Copy failed';
-        setTimeout(() => { copyReportBtn.textContent = 'Copy report'; }, 1500);
-      }
-    });
+    }
+
+    copyReportBtn.addEventListener('click', () =>
+      copyWithFeedback(buildReportText(lastAnalysisData), copyReportBtn)
+    );
 
     downloadJsonBtn.addEventListener('click', () => {
       if (!lastAnalysisData) return;
