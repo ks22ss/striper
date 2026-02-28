@@ -16,6 +16,54 @@
 </head>
 <body class="min-h-screen bg-base-100 text-base-content">
   <div class="max-w-3xl mx-auto px-6 py-8">
+    <!-- Landing page -->
+    <section id="landing-page" class="min-h-[60vh] flex flex-col justify-center">
+      <div class="text-center mb-12">
+        <h1 class="text-4xl font-semibold tracking-tight mb-4">Striper</h1>
+        <p class="text-xl text-base-content/70 max-w-xl mx-auto mb-2">Analyze prompts for over-engineering using the Stripe method. Strip components one at a time and see what really matters.</p>
+        <p class="text-base-content/60 text-sm">Get a score, an improved prompt, and a breakdown of kept vs removed components.</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="#/login" class="btn btn-primary btn-lg" id="landing-login-btn">Login</a>
+        <a href="#/register" class="btn btn-outline btn-lg" id="landing-register-btn">Register</a>
+      </div>
+    </section>
+
+    <!-- Login page -->
+    <section id="login-page" class="hidden">
+      <header class="mb-8 pb-6 border-b border-base-300">
+        <a href="#/" class="text-sm text-primary hover:underline mb-2 inline-block">← Back</a>
+        <h1 class="text-2xl font-semibold tracking-tight">Login</h1>
+        <p class="text-base-content/70 text-sm mt-1">Sign in to analyze prompts and view history.</p>
+      </header>
+      <form id="login-form" class="space-y-3 max-w-sm">
+        <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required />
+        <input type="password" name="password" placeholder="Password" class="input input-bordered w-full" required />
+        <button type="submit" class="btn btn-primary">Login</button>
+      </form>
+      <p class="text-sm text-base-content/60 mt-4">Don't have an account? <a href="#/register" class="link link-primary">Register</a></p>
+      <p class="text-sm text-error mt-2 hidden" id="login-error"></p>
+    </section>
+
+    <!-- Register page -->
+    <section id="register-page" class="hidden">
+      <header class="mb-8 pb-6 border-b border-base-300">
+        <a href="#/" class="text-sm text-primary hover:underline mb-2 inline-block">← Back</a>
+        <h1 class="text-2xl font-semibold tracking-tight">Register</h1>
+        <p class="text-base-content/70 text-sm mt-1">Create an account to analyze prompts and save history.</p>
+      </header>
+      <form id="register-form" class="space-y-3 max-w-sm">
+        <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required minlength="2" />
+        <input type="email" name="email" placeholder="Email" class="input input-bordered w-full" required />
+        <input type="password" name="password" placeholder="Password (min 8 chars)" class="input input-bordered w-full" required minlength="8" />
+        <button type="submit" class="btn btn-primary">Register</button>
+      </form>
+      <p class="text-sm text-base-content/60 mt-4">Already have an account? <a href="#/login" class="link link-primary">Login</a></p>
+      <p class="text-sm text-error mt-2 hidden" id="register-error"></p>
+    </section>
+
+    <!-- App home (analyze + history) -->
+    <section id="app-page" class="hidden">
     <header class="mb-8 pb-6 border-b border-base-300 flex justify-between items-start">
       <div>
         <h1 class="text-2xl font-semibold tracking-tight">Striper</h1>
@@ -24,31 +72,12 @@
       <div id="auth-section" class="flex items-center gap-2">
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
-        <button type="button" class="btn btn-ghost btn-sm hidden" id="history-btn">History</button>
-        <button type="button" class="btn btn-ghost btn-sm hidden" id="logout-btn">Logout</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="history-btn">History</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
       </div>
     </header>
 
-    <section id="auth-form-section" class="mb-8">
-      <div class="tabs tabs-boxed mb-4">
-        <a class="tab tab-active" data-tab="login">Login</a>
-        <a class="tab" data-tab="register">Register</a>
-      </div>
-      <form id="login-form" class="space-y-3 max-w-sm">
-        <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required />
-        <input type="password" name="password" placeholder="Password" class="input input-bordered w-full" required />
-        <button type="submit" class="btn btn-primary">Login</button>
-      </form>
-      <form id="register-form" class="space-y-3 max-w-sm hidden">
-        <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required minlength="2" />
-        <input type="email" name="email" placeholder="Email" class="input input-bordered w-full" required />
-        <input type="password" name="password" placeholder="Password (min 8 chars)" class="input input-bordered w-full" required minlength="8" />
-        <button type="submit" class="btn btn-primary">Register</button>
-      </form>
-      <p class="text-sm text-error mt-2 hidden" id="auth-error"></p>
-    </section>
-
-    <section id="analyze-section" class="hidden">
+    <section id="analyze-section">
     <form id="analyze-form">
       <label for="api-key" class="label">
         <span class="label-text font-medium">OpenAI API key</span>
@@ -123,6 +152,8 @@
       </div>
     </section>
 
+    </section>
+
     <section id="history-section" class="mt-8 hidden">
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
       <ul class="space-y-2" id="history-list"></ul>
@@ -136,14 +167,18 @@
     const USER_KEY = 'striper_user';
     const THEME_KEY = 'striper_theme';
 
-    const authFormSection = document.getElementById('auth-form-section');
+    const landingPage = document.getElementById('landing-page');
+    const loginPage = document.getElementById('login-page');
+    const registerPage = document.getElementById('register-page');
+    const appPage = document.getElementById('app-page');
     const analyzeSection = document.getElementById('analyze-section');
     const historySection = document.getElementById('history-section');
     const historyListEl = document.getElementById('history-list');
     const userInfoEl = document.getElementById('user-info');
     const historyBtn = document.getElementById('history-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const authErrorEl = document.getElementById('auth-error');
+    const loginErrorEl = document.getElementById('login-error');
+    const registerErrorEl = document.getElementById('register-error');
     const themeToggle = document.getElementById('theme-toggle');
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
@@ -215,33 +250,91 @@
       return h;
     }
 
-    function showAuthError(msg) {
-      authErrorEl.textContent = msg;
-      authErrorEl.classList.remove('hidden');
+    function showLoginError(msg) {
+      loginErrorEl.textContent = msg;
+      loginErrorEl.classList.remove('hidden');
     }
-    function clearAuthError() {
-      authErrorEl.textContent = '';
-      authErrorEl.classList.add('hidden');
+    function clearLoginError() {
+      loginErrorEl.textContent = '';
+      loginErrorEl.classList.add('hidden');
+    }
+    function showRegisterError(msg) {
+      registerErrorEl.textContent = msg;
+      registerErrorEl.classList.remove('hidden');
+    }
+    function clearRegisterError() {
+      registerErrorEl.textContent = '';
+      registerErrorEl.classList.add('hidden');
+    }
+
+    function hideAllPages() {
+      landingPage.classList.add('hidden');
+      loginPage.classList.add('hidden');
+      registerPage.classList.add('hidden');
+      appPage.classList.add('hidden');
+    }
+
+    function showPage(pageId) {
+      hideAllPages();
+      const page = document.getElementById(pageId);
+      if (page) page.classList.remove('hidden');
     }
 
     function setLoggedIn(user) {
       localStorage.setItem(USER_KEY, JSON.stringify(user));
-      authFormSection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
-      historySection.classList.add('hidden');
       userInfoEl.textContent = user ? user.username : '';
-      historyBtn.classList.remove('hidden');
-      logoutBtn.classList.remove('hidden');
+      historySection.classList.add('hidden');
+      showPage('app-page');
+      window.location.hash = '#/app';
     }
     function setLoggedOut() {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem(USER_KEY);
-      authFormSection.classList.remove('hidden');
-      analyzeSection.classList.add('hidden');
-      historySection.classList.add('hidden');
       userInfoEl.textContent = '';
-      historyBtn.classList.add('hidden');
-      logoutBtn.classList.add('hidden');
+      showPage('landing-page');
+      window.location.hash = '#/';
+    }
+
+    function getRoute() {
+      const hash = window.location.hash.slice(1) || '/';
+      return hash.startsWith('/') ? hash : '/' + hash;
+    }
+
+    function route() {
+      const path = getRoute();
+      const isAuth = !!localStorage.getItem(AUTH_KEY);
+
+      if (isAuth) {
+        if (path === '/' || path === '/login' || path === '/register') {
+          showPage('app-page');
+          window.location.hash = '#/app';
+          return;
+        }
+        if (path === '/app') {
+          showPage('app-page');
+          return;
+        }
+      } else {
+        if (path === '/app') {
+          showPage('login-page');
+          window.location.hash = '#/login';
+          return;
+        }
+        if (path === '/') {
+          showPage('landing-page');
+          return;
+        }
+        if (path === '/login') {
+          showPage('login-page');
+          return;
+        }
+        if (path === '/register') {
+          showPage('register-page');
+          return;
+        }
+      }
+      showPage('landing-page');
+      window.location.hash = '#/';
     }
 
     const THEMES = ['dark', 'light', 'system'];
@@ -279,62 +372,57 @@
       applyTheme(next);
     });
 
-    if (localStorage.getItem(AUTH_KEY)) {
-      const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
-      setLoggedIn(user);
-    } else {
-      setLoggedOut();
-    }
+    window.addEventListener('hashchange', route);
+    route();
 
-    document.querySelectorAll('[data-tab]').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('[data-tab]').forEach(t => t.classList.remove('tab-active'));
-        tab.classList.add('tab-active');
-        loginForm.classList.toggle('hidden', tab.dataset.tab !== 'login');
-        registerForm.classList.toggle('hidden', tab.dataset.tab !== 'register');
-        clearAuthError();
-      });
-    });
-
-    async function submitAuthForm(endpoint, payload, errorFallback) {
-      clearAuthError();
+    async function submitLogin(payload) {
+      clearLoginError();
       try {
-        const res = await fetch(endpoint, {
+        const res = await fetch('/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || errorFallback);
+        if (!res.ok) throw new Error(data.detail || 'Login failed');
         localStorage.setItem(AUTH_KEY, data.access_token);
         setLoggedIn(data.user);
       } catch (err) {
-        showAuthError(err.message);
+        showLoginError(err.message);
+      }
+    }
+
+    async function submitRegister(payload) {
+      clearRegisterError();
+      try {
+        const res = await fetch('/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Registration failed');
+        localStorage.setItem(AUTH_KEY, data.access_token);
+        setLoggedIn(data.user);
+      } catch (err) {
+        showRegisterError(err.message);
       }
     }
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(loginForm);
-      await submitAuthForm(
-        '/login',
-        { username: fd.get('username'), password: fd.get('password') },
-        'Login failed'
-      );
+      await submitLogin({ username: fd.get('username'), password: fd.get('password') });
     });
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(registerForm);
-      await submitAuthForm(
-        '/register',
-        {
-          username: fd.get('username'),
-          email: fd.get('email'),
-          password: fd.get('password'),
-        },
-        'Registration failed'
-      );
+      await submitRegister({
+        username: fd.get('username'),
+        email: fd.get('email'),
+        password: fd.get('password'),
+      });
     });
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
