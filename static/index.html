@@ -168,6 +168,7 @@
       statusEl.textContent = '';
       statusEl.className = 'text-sm text-base-content/70';
       updatePromptCount();
+      updateInputCount();
       promptInput.focus();
     }
 
@@ -354,12 +355,45 @@
     promptInput.addEventListener('keydown', handleCtrlEnter);
     inputField.addEventListener('keydown', handleCtrlEnter);
 
+    function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
+      const body = { prompt };
+      if (inputText) body.input = inputText;
+      if (apiKey) body.api_key = apiKey;
+      return body;
+    }
+
+    function renderScoreSection(data) {
+      const score = data.over_engineered_score;
+      const pct = Math.round(score * 100);
+      scoreProgress.value = pct;
+      scoreProgress.className = 'progress w-full h-2 ' + (
+        score < 0.33 ? 'progress-success' :
+        score < 0.66 ? 'progress-warning' :
+        'progress-error'
+      );
+      scoreLabel.textContent = pct + '% – ' + (
+        score < 0.33 ? 'prompt is fairly optimal' :
+        score < 0.66 ? 'some redundancy detected' :
+        'prompt is over-engineered'
+      );
+    }
+
+    function renderComponentsSection(data) {
+      const items = [];
+      (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
+      (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const prompt = promptInput.value.trim();
       if (!prompt) return;
-
-      const inputText = inputField.value.trim() || null;
 
       submitBtn.disabled = true;
       statusEl.textContent = 'Analyzing...';
@@ -368,17 +402,16 @@
       const startTime = Date.now();
 
       try {
-        const body = { prompt };
-        if (inputText) body.input = inputText;
-        const apiKey = apiKeyInput.value.trim();
-        if (apiKey) body.api_key = apiKey;
-
+        const body = buildAnalyzeRequestBody(
+          prompt,
+          inputField.value.trim() || null,
+          apiKeyInput.value.trim()
+        );
         const res = await fetch('/analyze', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify(body),
         });
-
         const data = await res.json();
 
         if (!res.ok) {
@@ -389,38 +422,9 @@
           throw new Error(data.detail || 'Analysis failed');
         }
 
-        // Score
-        const score = data.over_engineered_score;
-        const pct = Math.round(score * 100);
-        scoreProgress.value = pct;
-        scoreProgress.className = 'progress w-full h-2 ' + (
-          score < 0.33 ? 'progress-success' :
-          score < 0.66 ? 'progress-warning' :
-          'progress-error'
-        );
-        scoreLabel.textContent = pct + '% – ' + (
-          score < 0.33 ? 'prompt is fairly optimal' :
-          score < 0.66 ? 'some redundancy detected' :
-          'prompt is over-engineered'
-        );
-
-        // Improved prompt
+        renderScoreSection(data);
         improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
-
-        // Components
-        const items = [];
-        (data.components_kept || []).forEach(c => {
-          items.push({ text: c, type: 'kept' });
-        });
-        (data.components_removed || []).forEach(c => {
-          items.push({ text: c, type: 'removed' });
-        });
-        componentsEl.innerHTML = items.map(({ text, type }) =>
-          `<li class="flex items-start gap-2 py-3 text-sm">
-            <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-            <span>${escapeHtml(text)}</span>
-          </li>`
-        ).join('');
+        renderComponentsSection(data);
 
         resultsEl.classList.remove('hidden');
         const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
