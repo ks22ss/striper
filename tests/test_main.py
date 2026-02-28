@@ -70,6 +70,14 @@ def test_ui_includes_use_improved_button():
     assert "Use as prompt" in r.text
 
 
+def test_ui_includes_download_json_button():
+    """UI includes Download JSON button for exporting analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "download-json-btn" in r.text
+    assert "Download JSON" in r.text
+
+
 def test_ui_includes_input_length_indicator():
     """UI includes input field length (chars/words) indicator."""
     r = client.get("/")
