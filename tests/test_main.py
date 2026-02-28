@@ -51,6 +51,13 @@ def test_ui_includes_prompt_length_indicator():
     assert "chars" in r.text and "words" in r.text
 
 
+def test_ui_includes_input_length_indicator():
+    """UI includes input field length (chars/words) indicator."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "input-count" in r.text
+
+
 def test_ui_includes_clear_form_button():
     """UI includes Clear button to reset form fields."""
     r = client.get("/")
