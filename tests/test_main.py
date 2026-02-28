@@ -132,10 +132,11 @@ def test_ui_includes_clear_form_button():
 
 
 def test_ui_includes_landing_page():
-    """UI includes landing page with Login and Register CTAs."""
+    """UI includes landing page with Get started, Login and Register CTAs."""
     r = client.get("/")
     assert r.status_code == 200
     assert "landing-page" in r.text
+    assert "landing-get-started-btn" in r.text or "Get started" in r.text
     assert "landing-login-btn" in r.text or 'href="#/login"' in r.text
     assert "landing-register-btn" in r.text or 'href="#/register"' in r.text
 
