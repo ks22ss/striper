@@ -12,13 +12,6 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_app_imports_with_auth_dependencies():
-    """Regression: app imports require bcrypt, python-jose, email-validator in requirements.txt."""
-    from app.auth import hash_password
-
-    assert callable(hash_password)
-
-
 # Fake user for protected route tests (avoids DB setup)
 FAKE_USER = {"id": 1, "username": "testuser", "email": "test@example.com"}
 
@@ -29,12 +22,19 @@ async def _fake_get_current_user():
 
 @contextmanager
 def with_fake_user():
-    """Context manager to override get_current_user for protected route tests. Cleans up on exit."""
+    """Override get_current_user with FAKE_USER for protected route tests. Cleans up on exit."""
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
         yield
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+
+
+def test_app_imports_with_auth_dependencies():
+    """Regression: app imports require bcrypt, python-jose, email-validator in requirements.txt."""
+    from app.auth import hash_password
+
+    assert callable(hash_password)
 
 
 def test_health():
@@ -60,6 +60,37 @@ def test_ui_includes_prompt_length_indicator():
     assert r.status_code == 200
     assert "prompt-count" in r.text
     assert "chars" in r.text and "words" in r.text
+
+
+def test_ui_includes_use_improved_button():
+    """UI includes Use as prompt button for iterative refinement."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "use-improved-btn" in r.text
+    assert "Use as prompt" in r.text
+
+
+def test_ui_includes_download_json_button():
+    """UI includes Download JSON button for exporting analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "download-json-btn" in r.text
+    assert "Download JSON" in r.text
+
+
+def test_ui_includes_input_length_indicator():
+    """UI includes input field length (chars/words) indicator."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "input-count" in r.text
+
+
+def test_ui_includes_clear_form_button():
+    """UI includes Clear button to reset form fields."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "clear-form-btn" in r.text
+    assert "Clear" in r.text
 
 
 def test_analyze_unauthorized():
