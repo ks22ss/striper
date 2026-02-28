@@ -298,19 +298,21 @@
       analyzeSection.classList.remove('hidden');
     });
 
-    copyImprovedBtn.addEventListener('click', async () => {
-      const text = improvedPromptEl.textContent || '';
+    async function copyWithFeedback(text, btnEl) {
       if (!text) return;
+      const originalLabel = btnEl.textContent;
       try {
         await navigator.clipboard.writeText(text);
-        const orig = copyImprovedBtn.textContent;
-        copyImprovedBtn.textContent = 'Copied!';
-        setTimeout(() => { copyImprovedBtn.textContent = orig; }, 1500);
+        btnEl.textContent = 'Copied!';
       } catch {
-        copyImprovedBtn.textContent = 'Copy failed';
-        setTimeout(() => { copyImprovedBtn.textContent = 'Copy'; }, 1500);
+        btnEl.textContent = 'Copy failed';
       }
-    });
+      setTimeout(() => { btnEl.textContent = originalLabel; }, 1500);
+    }
+
+    copyImprovedBtn.addEventListener('click', () =>
+      copyWithFeedback(improvedPromptEl.textContent || '', copyImprovedBtn)
+    );
 
     function handleCtrlEnter(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
