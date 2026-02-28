@@ -82,6 +82,14 @@ def test_ui_includes_prompt_length_indicator():
     assert "chars" in r.text and "words" in r.text
 
 
+def test_ui_includes_theme_toggle():
+    """UI includes theme toggle button for light/dark mode."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "theme-toggle" in r.text
+    assert "data-theme" in r.text or "Toggle" in r.text
+
+
 def test_ui_includes_use_improved_button():
     """UI includes Use as prompt button for iterative refinement."""
     r = client.get("/")
