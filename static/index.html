@@ -22,6 +22,7 @@
         <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
       </div>
       <div id="auth-section" class="flex items-center gap-2">
+        <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
         <button type="button" class="btn btn-ghost btn-sm hidden" id="history-btn">History</button>
         <button type="button" class="btn btn-ghost btn-sm hidden" id="logout-btn">Logout</button>
@@ -133,6 +134,7 @@
   <script>
     const AUTH_KEY = 'striper_token';
     const USER_KEY = 'striper_user';
+    const THEME_KEY = 'striper_theme';
 
     const authFormSection = document.getElementById('auth-form-section');
     const analyzeSection = document.getElementById('analyze-section');
@@ -142,6 +144,7 @@
     const historyBtn = document.getElementById('history-btn');
     const logoutBtn = document.getElementById('logout-btn');
     const authErrorEl = document.getElementById('auth-error');
+    const themeToggle = document.getElementById('theme-toggle');
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const form = document.getElementById('analyze-form');
@@ -240,6 +243,21 @@
       historyBtn.classList.add('hidden');
       logoutBtn.classList.add('hidden');
     }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+      themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      localStorage.setItem(THEME_KEY, theme);
+    }
+
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+    applyTheme(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+    });
 
     if (localStorage.getItem(AUTH_KEY)) {
       const user = JSON.parse(localStorage.getItem(USER_KEY) || '{}');
@@ -348,19 +366,21 @@
       promptInput.focus();
     });
 
-    copyImprovedBtn.addEventListener('click', async () => {
-      const text = improvedPromptEl.textContent || '';
+    async function copyWithFeedback(text, btnEl) {
       if (!text) return;
+      const originalLabel = btnEl.textContent;
       try {
         await navigator.clipboard.writeText(text);
-        const orig = copyImprovedBtn.textContent;
-        copyImprovedBtn.textContent = 'Copied!';
-        setTimeout(() => { copyImprovedBtn.textContent = orig; }, 1500);
+        btnEl.textContent = 'Copied!';
       } catch {
-        copyImprovedBtn.textContent = 'Copy failed';
-        setTimeout(() => { copyImprovedBtn.textContent = 'Copy'; }, 1500);
+        btnEl.textContent = 'Copy failed';
       }
-    });
+      setTimeout(() => { btnEl.textContent = originalLabel; }, 1500);
+    }
+
+    copyImprovedBtn.addEventListener('click', () =>
+      copyWithFeedback(improvedPromptEl.textContent || '', copyImprovedBtn)
+    );
 
     copyReportBtn.addEventListener('click', async () => {
       if (!lastAnalysisData) return;
