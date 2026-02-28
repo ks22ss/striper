@@ -73,7 +73,7 @@
       <div id="auth-section" class="flex items-center gap-2">
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
-        <button type="button" class="btn btn-ghost btn-sm" id="history-btn">History</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
         <button type="button" class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
       </div>
     </header>
@@ -252,21 +252,13 @@
       return h;
     }
 
-    function showLoginError(msg) {
-      loginErrorEl.textContent = msg;
-      loginErrorEl.classList.remove('hidden');
+    function showFormError(el, msg) {
+      el.textContent = msg;
+      el.classList.remove('hidden');
     }
-    function clearLoginError() {
-      loginErrorEl.textContent = '';
-      loginErrorEl.classList.add('hidden');
-    }
-    function showRegisterError(msg) {
-      registerErrorEl.textContent = msg;
-      registerErrorEl.classList.remove('hidden');
-    }
-    function clearRegisterError() {
-      registerErrorEl.textContent = '';
-      registerErrorEl.classList.add('hidden');
+    function clearFormError(el) {
+      el.textContent = '';
+      el.classList.add('hidden');
     }
 
     function hideAllPages() {
@@ -377,76 +369,70 @@
     window.addEventListener('hashchange', route);
     route();
 
+    async function submitAuthForm(endpoint, payload, errorEl, defaultError, btnEl, loadingText) {
+      clearFormError(errorEl);
+      let originalText = '';
+      if (btnEl && loadingText) {
+        btnEl.disabled = true;
+        originalText = btnEl.textContent;
+        btnEl.textContent = loadingText;
+      }
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || defaultError);
+        localStorage.setItem(AUTH_KEY, data.access_token);
+        setLoggedIn(data.user);
+      } catch (err) {
+        showFormError(errorEl, err.message);
+      } finally {
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.textContent = originalText;
+        }
+      }
+    }
+
     const loginSubmitBtn = document.getElementById('login-submit-btn');
     const registerSubmitBtn = document.getElementById('register-submit-btn');
-
-    async function submitLogin(payload) {
-      clearLoginError();
-      const btn = loginSubmitBtn;
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Logging in...';
-      try {
-        const res = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Login failed');
-        localStorage.setItem(AUTH_KEY, data.access_token);
-        setLoggedIn(data.user);
-      } catch (err) {
-        showLoginError(err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    }
-
-    async function submitRegister(payload) {
-      clearRegisterError();
-      const btn = registerSubmitBtn;
-      const originalText = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Creating account...';
-      try {
-        const res = await fetch('/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Registration failed');
-        localStorage.setItem(AUTH_KEY, data.access_token);
-        setLoggedIn(data.user);
-      } catch (err) {
-        showRegisterError(err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    }
 
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(loginForm);
-      await submitLogin({ username: fd.get('username'), password: fd.get('password') });
+      await submitAuthForm(
+        '/login',
+        { username: fd.get('username'), password: fd.get('password') },
+        loginErrorEl,
+        'Login failed',
+        loginSubmitBtn,
+        'Logging in...'
+      );
     });
 
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(registerForm);
-      await submitRegister({
-        username: fd.get('username'),
-        email: fd.get('email'),
-        password: fd.get('password'),
-      });
+      await submitAuthForm(
+        '/register',
+        {
+          username: fd.get('username'),
+          email: fd.get('email'),
+          password: fd.get('password'),
+        },
+        registerErrorEl,
+        'Registration failed',
+        registerSubmitBtn,
+        'Creating account...'
+      );
     });
 
     logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
-    historyBtn.addEventListener('click', async () => {
+    async function loadHistory() {
       analyzeSection.classList.add('hidden');
       historySection.classList.remove('hidden');
       historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
@@ -476,7 +462,9 @@
       } catch (err) {
         historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
       }
-    });
+    }
+
+    historyBtn.addEventListener('click', loadHistory);
 
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
@@ -556,6 +544,15 @@
     }
     promptInput.addEventListener('keydown', handleCtrlEnter);
     inputField.addEventListener('keydown', handleCtrlEnter);
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
+        e.preventDefault();
+        if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
+          historyBtn.click();
+        }
+      }
+    });
 
     function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
       const body = { prompt };
