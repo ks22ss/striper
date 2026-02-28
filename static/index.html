@@ -40,7 +40,7 @@
       <form id="login-form" class="space-y-3 max-w-sm">
         <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required />
         <input type="password" name="password" placeholder="Password" class="input input-bordered w-full" required />
-        <button type="submit" class="btn btn-primary">Login</button>
+        <button type="submit" class="btn btn-primary" id="login-submit-btn">Login</button>
       </form>
       <p class="text-sm text-base-content/60 mt-4">Don't have an account? <a href="#/register" class="link link-primary">Register</a></p>
       <p class="text-sm text-error mt-2 hidden" id="login-error"></p>
@@ -57,7 +57,7 @@
         <input type="text" name="username" placeholder="Username" class="input input-bordered w-full" required minlength="2" />
         <input type="email" name="email" placeholder="Email" class="input input-bordered w-full" required />
         <input type="password" name="password" placeholder="Password (min 8 chars)" class="input input-bordered w-full" required minlength="8" />
-        <button type="submit" class="btn btn-primary">Register</button>
+        <button type="submit" class="btn btn-primary" id="register-submit-btn">Register</button>
       </form>
       <p class="text-sm text-base-content/60 mt-4">Already have an account? <a href="#/login" class="link link-primary">Login</a></p>
       <p class="text-sm text-error mt-2 hidden" id="register-error"></p>
@@ -377,8 +377,15 @@
     window.addEventListener('hashchange', route);
     route();
 
+    const loginSubmitBtn = document.getElementById('login-submit-btn');
+    const registerSubmitBtn = document.getElementById('register-submit-btn');
+
     async function submitLogin(payload) {
       clearLoginError();
+      const btn = loginSubmitBtn;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Logging in...';
       try {
         const res = await fetch('/login', {
           method: 'POST',
@@ -391,11 +398,18 @@
         setLoggedIn(data.user);
       } catch (err) {
         showLoginError(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
     }
 
     async function submitRegister(payload) {
       clearRegisterError();
+      const btn = registerSubmitBtn;
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
       try {
         const res = await fetch('/register', {
           method: 'POST',
@@ -408,6 +422,9 @@
         setLoggedIn(data.user);
       } catch (err) {
         showRegisterError(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
       }
     }
 

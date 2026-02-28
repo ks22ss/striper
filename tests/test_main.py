@@ -147,6 +147,7 @@ def test_ui_includes_login_page():
     assert r.status_code == 200
     assert "login-page" in r.text
     assert "login-form" in r.text
+    assert "login-submit-btn" in r.text
     assert "#/register" in r.text
 
 
@@ -156,6 +157,7 @@ def test_ui_includes_register_page():
     assert r.status_code == 200
     assert "register-page" in r.text
     assert "register-form" in r.text
+    assert "register-submit-btn" in r.text
     assert "#/login" in r.text
 
 
