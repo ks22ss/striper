@@ -22,7 +22,7 @@ async def _fake_get_current_user():
 
 @contextmanager
 def with_fake_user():
-    """Context manager to override get_current_user with FAKE_USER for protected route tests."""
+    """Override get_current_user with FAKE_USER for protected route tests. Cleans up on exit."""
     app.dependency_overrides[get_current_user] = _fake_get_current_user
     try:
         yield
@@ -103,7 +103,7 @@ def test_analyze_requires_prompt():
     """Analyze endpoint requires non-empty prompt."""
     with with_fake_user():
         r = client.post("/analyze", json={})
-    assert r.status_code == 422  # Validation error
+        assert r.status_code == 422  # Validation error
 
 
 def test_analyze_success():
@@ -121,12 +121,12 @@ def test_analyze_success():
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Be concise. Always use bullet points."})
-    assert r.status_code == 200
-    data = r.json()
-    assert data["over_engineered_score"] == 0.25
-    assert data["improved_prompt"] == "Be concise."
-    assert "components_removed" in data
-    assert "components_kept" in data
+        assert r.status_code == 200
+        data = r.json()
+        assert data["over_engineered_score"] == 0.25
+        assert data["improved_prompt"] == "Be concise."
+        assert "components_removed" in data
+        assert "components_kept" in data
 
 
 def test_register_success():
@@ -202,7 +202,7 @@ def test_history_limit_clamped():
     """History limit over max (100) is rejected with 422 to prevent abuse."""
     with with_fake_user():
         r = client.get("/history?limit=9999")
-    assert r.status_code == 422  # Query validation rejects limit > 100
+        assert r.status_code == 422  # Query validation rejects limit > 100
 
 
 def test_history_success():
@@ -221,31 +221,31 @@ def test_history_success():
             ],
         ):
             r = client.get("/history")
-    assert r.status_code == 200
-    data = r.json()
-    assert len(data["items"]) == 1
-    assert data["items"][0]["prompt"] == "Be nice."
+        assert r.status_code == 200
+        data = r.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["prompt"] == "Be nice."
 
 
 def test_history_rejects_limit_zero():
     """History rejects limit=0 (SQLite LIMIT 0 is pointless; validate ge=1)."""
     with with_fake_user():
         r = client.get("/history?limit=0")
-    assert r.status_code == 422
+        assert r.status_code == 422
 
 
 def test_history_rejects_negative_limit():
     """History rejects negative limit (SQLite LIMIT -1 returns all rows = DoS)."""
     with with_fake_user():
         r = client.get("/history?limit=-1")
-    assert r.status_code == 422
+        assert r.status_code == 422
 
 
 def test_history_rejects_limit_over_max():
     """History rejects limit > 100 to cap response size."""
     with with_fake_user():
         r = client.get("/history?limit=500")
-    assert r.status_code == 422
+        assert r.status_code == 422
 
 
 def test_history_accepts_valid_limit():
@@ -253,8 +253,8 @@ def test_history_accepts_valid_limit():
     with with_fake_user():
         with patch("app.main.get_prompt_history", return_value=[]) as mock_get:
             r = client.get("/history?limit=10")
-    assert r.status_code == 200
-    mock_get.assert_called_once_with(1, limit=10)
+        assert r.status_code == 200
+        mock_get.assert_called_once_with(1, limit=10)
 
 
 def test_analyze_with_optional_input():
@@ -278,12 +278,12 @@ def test_analyze_with_optional_input():
                     "input": "This is a long document about AI and machine learning.",
                 },
             )
-    assert r.status_code == 200
-    mock_run.assert_called_once_with(
-        "Summarize briefly.",
-        user_input="This is a long document about AI and machine learning.",
-        api_key=None,
-    )
+        assert r.status_code == 200
+        mock_run.assert_called_once_with(
+            "Summarize briefly.",
+            user_input="This is a long document about AI and machine learning.",
+            api_key=None,
+        )
 
 
 def test_analyze_with_api_key_in_request():
@@ -304,8 +304,8 @@ def test_analyze_with_api_key_in_request():
                 "/analyze",
                 json={"prompt": "Test.", "api_key": "sk-user-provided-key"},
             )
-    assert r.status_code == 200
-    mock_run.assert_called_once_with("Test.", user_input=None, api_key="sk-user-provided-key")
+        assert r.status_code == 200
+        mock_run.assert_called_once_with("Test.", user_input=None, api_key="sk-user-provided-key")
 
 
 def test_analyze_empty_api_key_treated_as_none():
@@ -323,8 +323,8 @@ def test_analyze_empty_api_key_treated_as_none():
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
-    assert r.status_code == 200
-    mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
+        assert r.status_code == 200
+        mock_run.assert_called_once_with("Test.", user_input=None, api_key=None)
 
 
 def test_analyze_invalid_api_key_returns_503():
@@ -338,5 +338,5 @@ def test_analyze_invalid_api_key_returns_503():
             side_effect=AuthenticationError("Invalid key", response=resp, body=None),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "sk-invalid"})
-    assert r.status_code == 503
-    assert "Invalid" in r.json()["detail"]
+        assert r.status_code == 503
+        assert "Invalid" in r.json()["detail"]
