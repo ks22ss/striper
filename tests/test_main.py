@@ -51,6 +51,14 @@ def test_ui_includes_prompt_length_indicator():
     assert "chars" in r.text and "words" in r.text
 
 
+def test_ui_includes_copy_report_button():
+    """UI includes Copy report button for full analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "copy-report-btn" in r.text
+    assert "Copy report" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

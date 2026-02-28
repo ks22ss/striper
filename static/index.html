@@ -102,7 +102,10 @@
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
-            <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+            <div class="flex gap-1">
+              <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy improved prompt">Copy</button>
+              <button type="button" class="btn btn-ghost btn-xs" id="copy-report-btn" title="Copy full analysis report">Copy report</button>
+            </div>
           </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
         </div>
@@ -150,8 +153,11 @@
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
+    const copyReportBtn = document.getElementById('copy-report-btn');
 
     const promptCountEl = document.getElementById('prompt-count');
+
+    let lastAnalysis = null;
 
     function updatePromptCount() {
       const text = promptInput.value;
@@ -312,6 +318,35 @@
       }
     });
 
+    copyReportBtn.addEventListener('click', async () => {
+      if (!lastAnalysis) return;
+      const score = Math.round((lastAnalysis.over_engineered_score || 0) * 100);
+      const improved = lastAnalysis.improved_prompt || '(unchanged)';
+      const kept = (lastAnalysis.components_kept || []).map((c) => '  - ' + c).join('\n');
+      const removed = (lastAnalysis.components_removed || []).map((c) => '  - ' + c).join('\n');
+      const report = [
+        'Over-engineered score: ' + score + '%',
+        '',
+        'Improved prompt:',
+        improved,
+        '',
+        'Components kept:',
+        kept || '  (none)',
+        '',
+        'Components removed:',
+        removed || '  (none)',
+      ].join('\n');
+      try {
+        await navigator.clipboard.writeText(report);
+        const orig = copyReportBtn.textContent;
+        copyReportBtn.textContent = 'Copied!';
+        setTimeout(() => { copyReportBtn.textContent = orig; }, 1500);
+      } catch {
+        copyReportBtn.textContent = 'Copy failed';
+        setTimeout(() => { copyReportBtn.textContent = 'Copy report'; }, 1500);
+      }
+    });
+
     function handleCtrlEnter(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
@@ -375,6 +410,8 @@
 
         // Improved prompt
         improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
+
+        lastAnalysis = data;
 
         // Components
         const items = [];
