@@ -158,7 +158,7 @@
     <section id="history-section" class="mt-8 hidden">
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
       <ul class="space-y-2" id="history-list"></ul>
-      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back">Back</button>
+      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back" title="Back to analyze (Esc)">Back</button>
     </section>
     </section>
   </div>
@@ -539,6 +539,10 @@
         if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
           historyBtn.click();
         }
+      }
+      if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
       }
     });
 

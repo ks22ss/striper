@@ -178,6 +178,14 @@ def test_ui_includes_history_keyboard_shortcut():
     assert "Ctrl+Shift+H" in r.text
 
 
+def test_ui_includes_escape_close_history():
+    """UI includes Escape to close history (Back button tooltip)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "history-back" in r.text
+    assert "Esc" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
