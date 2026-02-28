@@ -74,7 +74,7 @@
       ></textarea>
       <label for="input" class="label mt-4">
         <span class="label-text font-medium">Input (optional)</span>
-        <span class="label-text-alt text-base-content/60">Sample text the prompt will process</span>
+        <span class="label-text-alt text-base-content/60" id="input-count">0 chars, 0 words · Sample text the prompt will process</span>
       </label>
       <textarea
         id="input"
@@ -82,8 +82,9 @@
         class="textarea textarea-bordered w-full min-h-[80px] font-mono text-sm resize-y"
         placeholder="e.g. Summarize this document: [paste text here]"
       ></textarea>
-      <div class="flex gap-3 items-center mt-4">
+      <div class="flex gap-3 items-center mt-4 flex-wrap">
         <button type="submit" class="btn btn-primary" id="submit-btn">Analyze</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="clear-form-btn" title="Clear all form fields">Clear</button>
         <span class="text-sm text-base-content/70" id="status"></span>
         <span class="label-text-alt text-base-content/50 ml-auto">Ctrl+Enter to submit</span>
       </div>
@@ -102,9 +103,9 @@
         <div class="card-body p-5">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
-            <div class="flex gap-1">
-              <button type="button" class="btn btn-ghost btn-xs" id="use-improved-btn" title="Use as new prompt for iterative refinement">Use as prompt</button>
-              <button type="button" class="btn btn-ghost btn-xs" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
+            <div class="flex gap-2">
+              <button type="button" class="btn btn-primary btn-sm" id="use-improved-btn" title="Use as prompt">Use as prompt</button>
+              <button type="button" class="btn btn-outline btn-sm" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
             </div>
           </div>
           <div class="font-mono text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="improved-prompt"></div>
@@ -154,19 +155,48 @@
     const componentsEl = document.getElementById('components');
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
     const useImprovedBtn = document.getElementById('use-improved-btn');
+    const clearFormBtn = document.getElementById('clear-form-btn');
 
     const promptCountEl = document.getElementById('prompt-count');
+    const inputCountEl = document.getElementById('input-count');
+
+    function formatCharWordCount(chars, words) {
+      return chars + ' chars, ' + words + ' words';
+    }
+
+    function clearForm() {
+      promptInput.value = '';
+      inputField.value = '';
+      apiKeyInput.value = '';
+      resultsEl.classList.add('hidden');
+      statusEl.textContent = '';
+      statusEl.className = 'text-sm text-base-content/70';
+      updatePromptCount();
+      updateInputCount();
+      promptInput.focus();
+    }
 
     function updatePromptCount() {
       const text = promptInput.value;
       const chars = text.length;
       const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-      promptCountEl.textContent = chars + ' chars, ' + words + ' words';
+      promptCountEl.textContent = formatCharWordCount(chars, words);
+    }
+
+    function updateInputCount() {
+      const text = inputField.value;
+      const chars = text.length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const count = formatCharWordCount(chars, words);
+      inputCountEl.textContent = count + ' · Sample text the prompt will process';
     }
 
     promptInput.addEventListener('input', updatePromptCount);
     promptInput.addEventListener('paste', () => setTimeout(updatePromptCount, 0));
+    inputField.addEventListener('input', updateInputCount);
+    inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
     updatePromptCount();
+    updateInputCount();
 
 
     function getAuthHeaders() {
@@ -302,6 +332,8 @@
       analyzeSection.classList.remove('hidden');
     });
 
+    clearFormBtn.addEventListener('click', clearForm);
+
     copyImprovedBtn.addEventListener('click', async () => {
       const text = improvedPromptEl.textContent || '';
       if (!text) return;
@@ -335,12 +367,45 @@
     promptInput.addEventListener('keydown', handleCtrlEnter);
     inputField.addEventListener('keydown', handleCtrlEnter);
 
+    function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
+      const body = { prompt };
+      if (inputText) body.input = inputText;
+      if (apiKey) body.api_key = apiKey;
+      return body;
+    }
+
+    function renderScoreSection(data) {
+      const score = data.over_engineered_score;
+      const pct = Math.round(score * 100);
+      scoreProgress.value = pct;
+      scoreProgress.className = 'progress w-full h-2 ' + (
+        score < 0.33 ? 'progress-success' :
+        score < 0.66 ? 'progress-warning' :
+        'progress-error'
+      );
+      scoreLabel.textContent = pct + '% – ' + (
+        score < 0.33 ? 'prompt is fairly optimal' :
+        score < 0.66 ? 'some redundancy detected' :
+        'prompt is over-engineered'
+      );
+    }
+
+    function renderComponentsSection(data) {
+      const items = [];
+      (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
+      (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const prompt = promptInput.value.trim();
       if (!prompt) return;
-
-      const inputText = inputField.value.trim() || null;
 
       submitBtn.disabled = true;
       statusEl.textContent = 'Analyzing...';
@@ -349,17 +414,16 @@
       const startTime = Date.now();
 
       try {
-        const body = { prompt };
-        if (inputText) body.input = inputText;
-        const apiKey = apiKeyInput.value.trim();
-        if (apiKey) body.api_key = apiKey;
-
+        const body = buildAnalyzeRequestBody(
+          prompt,
+          inputField.value.trim() || null,
+          apiKeyInput.value.trim()
+        );
         const res = await fetch('/analyze', {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify(body),
         });
-
         const data = await res.json();
 
         if (!res.ok) {
@@ -370,38 +434,9 @@
           throw new Error(data.detail || 'Analysis failed');
         }
 
-        // Score
-        const score = data.over_engineered_score;
-        const pct = Math.round(score * 100);
-        scoreProgress.value = pct;
-        scoreProgress.className = 'progress w-full h-2 ' + (
-          score < 0.33 ? 'progress-success' :
-          score < 0.66 ? 'progress-warning' :
-          'progress-error'
-        );
-        scoreLabel.textContent = pct + '% – ' + (
-          score < 0.33 ? 'prompt is fairly optimal' :
-          score < 0.66 ? 'some redundancy detected' :
-          'prompt is over-engineered'
-        );
-
-        // Improved prompt
+        renderScoreSection(data);
         improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
-
-        // Components
-        const items = [];
-        (data.components_kept || []).forEach(c => {
-          items.push({ text: c, type: 'kept' });
-        });
-        (data.components_removed || []).forEach(c => {
-          items.push({ text: c, type: 'removed' });
-        });
-        componentsEl.innerHTML = items.map(({ text, type }) =>
-          `<li class="flex items-start gap-2 py-3 text-sm">
-            <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-            <span>${escapeHtml(text)}</span>
-          </li>`
-        ).join('');
+        renderComponentsSection(data);
 
         resultsEl.classList.remove('hidden');
         const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
