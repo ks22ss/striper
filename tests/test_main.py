@@ -92,11 +92,12 @@ def test_ui_includes_copy_report_button():
 
 
 def test_ui_includes_theme_toggle():
-    """UI includes theme toggle button for light/dark mode."""
+    """UI includes theme toggle button for light/dark/system mode."""
     r = client.get("/")
     assert r.status_code == 200
     assert "theme-toggle" in r.text
     assert "data-theme" in r.text or "Toggle" in r.text
+    assert "system" in r.text
 
 
 def test_ui_includes_use_improved_button():
