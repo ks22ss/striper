@@ -74,7 +74,7 @@
       ></textarea>
       <label for="input" class="label mt-4">
         <span class="label-text font-medium">Input (optional)</span>
-        <span class="label-text-alt text-base-content/60">Sample text the prompt will process</span>
+        <span class="label-text-alt text-base-content/60" id="input-count">0 chars, 0 words · Sample text the prompt will process</span>
       </label>
       <textarea
         id="input"
@@ -82,8 +82,9 @@
         class="textarea textarea-bordered w-full min-h-[80px] font-mono text-sm resize-y"
         placeholder="e.g. Summarize this document: [paste text here]"
       ></textarea>
-      <div class="flex gap-3 items-center mt-4">
+      <div class="flex gap-3 items-center mt-4 flex-wrap">
         <button type="submit" class="btn btn-primary" id="submit-btn">Analyze</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="clear-form-btn" title="Clear all form fields">Clear</button>
         <span class="text-sm text-base-content/70" id="status"></span>
         <span class="label-text-alt text-base-content/50 ml-auto">Ctrl+Enter to submit</span>
       </div>
@@ -150,12 +151,27 @@
     const improvedPromptEl = document.getElementById('improved-prompt');
     const componentsEl = document.getElementById('components');
     const copyImprovedBtn = document.getElementById('copy-improved-btn');
+    const clearFormBtn = document.getElementById('clear-form-btn');
 
     const promptCountEl = document.getElementById('prompt-count');
+    const inputCountEl = document.getElementById('input-count');
 
     function formatCharWordCount(chars, words) {
       return chars + ' chars, ' + words + ' words';
     }
+
+    function clearForm() {
+      promptInput.value = '';
+      inputField.value = '';
+      apiKeyInput.value = '';
+      resultsEl.classList.add('hidden');
+      statusEl.textContent = '';
+      statusEl.className = 'text-sm text-base-content/70';
+      updatePromptCount();
+      updateInputCount();
+      promptInput.focus();
+    }
+
     function updatePromptCount() {
       const text = promptInput.value;
       const chars = text.length;
@@ -163,9 +179,20 @@
       promptCountEl.textContent = formatCharWordCount(chars, words);
     }
 
+    function updateInputCount() {
+      const text = inputField.value;
+      const chars = text.length;
+      const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+      const count = formatCharWordCount(chars, words);
+      inputCountEl.textContent = count + ' · Sample text the prompt will process';
+    }
+
     promptInput.addEventListener('input', updatePromptCount);
     promptInput.addEventListener('paste', () => setTimeout(updatePromptCount, 0));
+    inputField.addEventListener('input', updateInputCount);
+    inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
     updatePromptCount();
+    updateInputCount();
 
 
     function getAuthHeaders() {
@@ -300,6 +327,8 @@
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
     });
+
+    clearFormBtn.addEventListener('click', clearForm);
 
     copyImprovedBtn.addEventListener('click', async () => {
       const text = improvedPromptEl.textContent || '';
