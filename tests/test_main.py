@@ -131,6 +131,42 @@ def test_ui_includes_clear_form_button():
     assert "Clear" in r.text
 
 
+def test_ui_includes_landing_page():
+    """UI includes landing page with Login and Register CTAs."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "landing-page" in r.text
+    assert "landing-login-btn" in r.text or 'href="#/login"' in r.text
+    assert "landing-register-btn" in r.text or 'href="#/register"' in r.text
+
+
+def test_ui_includes_login_page():
+    """UI includes login page with form and link to register."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "login-page" in r.text
+    assert "login-form" in r.text
+    assert "#/register" in r.text
+
+
+def test_ui_includes_register_page():
+    """UI includes register page with form and link to login."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "register-page" in r.text
+    assert "register-form" in r.text
+    assert "#/login" in r.text
+
+
+def test_ui_includes_app_page():
+    """UI includes app page (analyze section) with logout button."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "app-page" in r.text
+    assert "logout-btn" in r.text
+    assert "Logout" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
