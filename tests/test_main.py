@@ -186,6 +186,23 @@ def test_ui_includes_escape_close_history():
     assert "Esc" in r.text
 
 
+def test_ui_includes_ctrl_shift_c_copy_report_hint():
+    """UI includes Ctrl+Shift+C shortcut hint for copy report."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "copy-report-btn" in r.text
+    assert "Ctrl+Shift+C" in r.text
+
+
+def test_ui_includes_ctrl_shift_r_reload_history():
+    """UI includes Reload button and Ctrl+Shift+R shortcut for history."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "history-reload-btn" in r.text
+    assert "Reload" in r.text
+    assert "Ctrl+Shift+R" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
