@@ -137,7 +137,7 @@
             <div class="flex gap-2">
               <button type="button" class="btn btn-primary btn-sm" id="use-improved-btn" title="Use as prompt">Use as prompt</button>
               <button type="button" class="btn btn-outline btn-sm" id="copy-improved-btn" title="Copy to clipboard">Copy</button>
-              <button type="button" class="btn btn-outline btn-sm" id="copy-report-btn" title="Copy full analysis report">Copy report</button>
+              <button type="button" class="btn btn-outline btn-sm" id="copy-report-btn" title="Copy full analysis report (Ctrl+Shift+C)">Copy report</button>
               <button type="button" class="btn btn-outline btn-sm" id="download-json-btn" title="Download full analysis as JSON">Download JSON</button>
             </div>
           </div>
@@ -158,7 +158,10 @@
     <section id="history-section" class="mt-8 hidden">
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
       <ul class="space-y-2" id="history-list"></ul>
-      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back" title="Back to analyze (Esc)">Back</button>
+      <div class="flex gap-2 mt-4">
+        <button type="button" class="btn btn-ghost btn-sm" id="history-back" title="Back to analyze (Esc)">Back</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="history-reload-btn" title="Reload history (Ctrl+Shift+R)">Reload</button>
+      </div>
     </section>
     </section>
   </div>
@@ -459,6 +462,8 @@
       analyzeSection.classList.remove('hidden');
     });
 
+    document.getElementById('history-reload-btn').addEventListener('click', loadHistory);
+
     clearFormBtn.addEventListener('click', clearForm);
 
     useImprovedBtn.addEventListener('click', () => {
@@ -538,6 +543,18 @@
         e.preventDefault();
         if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
           historyBtn.click();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        if (!resultsEl.classList.contains('hidden') && lastAnalysisData) {
+          copyWithFeedback(buildReportText(lastAnalysisData), copyReportBtn);
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (!historySection.classList.contains('hidden')) {
+          loadHistory();
         }
       }
       if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
