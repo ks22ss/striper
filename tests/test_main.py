@@ -91,6 +91,17 @@ def test_ui_includes_copy_report_button():
     assert "Copy report" in r.text
 
 
+def test_ui_includes_ctrl_shift_c_copy_report_shortcut():
+    """UI includes Ctrl+Shift+C shortcut for copy report (in HTML title or app.js)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    if "Ctrl+Shift+C" in r.text:
+        return
+    r_js = client.get("/static/app.js")
+    assert r_js.status_code == 200
+    assert "Ctrl+Shift+C" in r_js.text or ("shiftKey" in r_js.text and "key === 'C'" in r_js.text)
+
+
 def test_ui_includes_theme_toggle():
     """UI includes theme toggle button for light/dark/system mode."""
     r = client.get("/")
