@@ -75,60 +75,48 @@ def test_root_serves_ui():
     )
 
 
-def test_ui_includes_prompt_length_indicator():
-    """UI includes prompt length (chars/words) indicator."""
+def test_ui_loads_app_js():
+    """UI loads app.js for frontend logic (extracted from inline script)."""
     r = client.get("/")
     assert r.status_code == 200
-    assert "prompt-count" in r.text
-    assert "chars" in r.text and "words" in r.text
+    assert "app.js" in r.text
 
 
-def test_ui_includes_copy_report_button():
-    """UI includes Copy report button for full analysis."""
+def test_static_app_js_served():
+    """Static app.js is served at /static/app.js."""
+    r = client.get("/static/app.js")
+    assert r.status_code == 200
+    assert "getAuthHeaders" in r.text or "route" in r.text
+
+
+@pytest.mark.parametrize(
+    "substrings",
+    [
+        ["prompt-count", "chars", "words"],
+        ["copy-report-btn", "Copy report"],
+        ["theme-toggle", "data-theme", "system"],
+        ["use-improved-btn", "Use as prompt"],
+        ["download-json-btn", "Download JSON"],
+        ["input-count"],
+        ["clear-form-btn", "Clear"],
+    ],
+    ids=[
+        "prompt_length_indicator",
+        "copy_report_button",
+        "theme_toggle",
+        "use_improved_button",
+        "download_json_button",
+        "input_length_indicator",
+        "clear_form_button",
+    ],
+)
+def test_ui_includes_elements(substrings):
+    """UI includes expected elements (parametrized)."""
     r = client.get("/")
     assert r.status_code == 200
-    assert "copy-report-btn" in r.text
-    assert "Copy report" in r.text
-
-
-def test_ui_includes_theme_toggle():
-    """UI includes theme toggle button for light/dark/system mode."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "theme-toggle" in r.text
-    assert "data-theme" in r.text or "Toggle" in r.text
-    assert "system" in r.text
-
-
-def test_ui_includes_use_improved_button():
-    """UI includes Use as prompt button for iterative refinement."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "use-improved-btn" in r.text
-    assert "Use as prompt" in r.text
-
-
-def test_ui_includes_download_json_button():
-    """UI includes Download JSON button for exporting analysis."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "download-json-btn" in r.text
-    assert "Download JSON" in r.text
-
-
-def test_ui_includes_input_length_indicator():
-    """UI includes input field length (chars/words) indicator."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "input-count" in r.text
-
-
-def test_ui_includes_clear_form_button():
-    """UI includes Clear button to reset form fields."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "clear-form-btn" in r.text
-    assert "Clear" in r.text
+    text = r.text
+    for s in substrings:
+        assert s in text, f"Expected '{s}' in UI"
 
 
 def test_ui_includes_landing_page():
