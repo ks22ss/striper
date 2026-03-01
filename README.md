@@ -6,7 +6,7 @@ Analyze prompts for over-engineering using the **Stripe method**: strip componen
 
 ```bash
 # Clone and enter
-cd /root/striper
+git clone https://github.com/ks22ss/striper.git && cd striper
 
 # Create venv and install
 python -m venv .venv
@@ -50,7 +50,9 @@ striper/
 │   ├── main.py       # FastAPI app
 │   ├── stripe.py     # Stripe method logic
 │   ├── openai_client.py
-│   └── models.py
+│   ├── models.py
+│   ├── auth.py       # JWT auth
+│   └── database.py   # SQLite
 ├── static/
 │   └── index.html    # Frontend
 ├── PLAN.md           # Detailed plan
