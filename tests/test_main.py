@@ -194,6 +194,14 @@ def test_ui_includes_export_history_button():
     assert "Export history" in r.text
 
 
+def test_ui_includes_reload_history_keyboard_shortcut():
+    """UI includes Ctrl+Shift+R shortcut hint for reloading history."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "history-back" in r.text
+    assert "Ctrl+Shift+R" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
