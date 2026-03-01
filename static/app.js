@@ -1,6 +1,6 @@
 /**
  * Striper frontend app – routing, auth, analyze form, history, theme.
- * Extracted from index.html for SRP and maintainability.
+ * Extracted from inline script for SRP: HTML structure vs JS behavior.
  */
 (function () {
   'use strict';
@@ -43,21 +43,32 @@
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
 
-  let lastAnalysisData = null;
-
-  function formatCharWordCount(chars, words) {
-    return chars + ' chars, ' + words + ' words';
-  }
-
   function escapeHtml(s) {
     const div = document.createElement('div');
     div.textContent = s;
     return div.innerHTML;
   }
-
   function escapeAttr(s) {
     return escapeHtml(s).replace(/"/g, '&quot;');
   }
+
+  function formatCharWordCount(chars, words) {
+    return chars + ' chars, ' + words + ' words';
+  }
+
+  function clearForm() {
+    promptInput.value = '';
+    inputField.value = '';
+    apiKeyInput.value = '';
+    resultsEl.classList.add('hidden');
+    statusEl.textContent = '';
+    statusEl.className = 'text-sm text-base-content/70';
+    updatePromptCount();
+    updateInputCount();
+    promptInput.focus();
+  }
+
+  let lastAnalysisData = null;
 
   function updateCharWordCount(textareaEl, targetEl, suffix) {
     const text = textareaEl.value;
@@ -75,17 +86,12 @@
     updateCharWordCount(inputField, inputCountEl, 'Sample text the prompt will process');
   }
 
-  function clearForm() {
-    promptInput.value = '';
-    inputField.value = '';
-    apiKeyInput.value = '';
-    resultsEl.classList.add('hidden');
-    statusEl.textContent = '';
-    statusEl.className = 'text-sm text-base-content/70';
-    updatePromptCount();
-    updateInputCount();
-    promptInput.focus();
-  }
+  promptInput.addEventListener('input', updatePromptCount);
+  promptInput.addEventListener('paste', () => setTimeout(updatePromptCount, 0));
+  inputField.addEventListener('input', updateInputCount);
+  inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
+  updatePromptCount();
+  updateInputCount();
 
   function getAuthHeaders() {
     const token = localStorage.getItem(AUTH_KEY);
@@ -98,7 +104,6 @@
     el.textContent = msg;
     el.classList.remove('hidden');
   }
-
   function clearFormError(el) {
     el.textContent = '';
     el.classList.add('hidden');
@@ -124,7 +129,6 @@
     showPage('app-page');
     window.location.hash = '#/app';
   }
-
   function setLoggedOut() {
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(USER_KEY);
@@ -182,6 +186,25 @@
     localStorage.setItem(THEME_KEY, preference);
   }
 
+  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+  applyTheme(savedTheme);
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (localStorage.getItem(THEME_KEY) === 'system') {
+      document.documentElement.setAttribute('data-theme', getEffectiveTheme('system'));
+    }
+  });
+
+  themeToggle.addEventListener('click', () => {
+    const current = localStorage.getItem(THEME_KEY) || 'dark';
+    const idx = THEMES.indexOf(current);
+    const next = THEMES[(idx + 1) % THEMES.length];
+    applyTheme(next);
+  });
+
+  window.addEventListener('hashchange', route);
+  route();
+
   async function submitAuthForm(endpoint, payload, errorEl, defaultError, btnEl, loadingText) {
     clearFormError(errorEl);
     let originalText = '';
@@ -209,163 +232,6 @@
       }
     }
   }
-
-  async function copyWithFeedback(text, btnEl) {
-    if (!text) return;
-    const originalLabel = btnEl.textContent;
-    try {
-      await navigator.clipboard.writeText(text);
-      btnEl.textContent = 'Copied!';
-    } catch {
-      btnEl.textContent = 'Copy failed';
-    }
-    setTimeout(() => { btnEl.textContent = originalLabel; }, 1500);
-  }
-
-  function buildReportText(data) {
-    if (!data) return '';
-    const score = Math.round((data.over_engineered_score || 0) * 100);
-    const improved = data.improved_prompt || '(unchanged)';
-    const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
-    const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
-      'Over-engineered score: ' + score + '%',
-      '',
-      'Improved prompt:',
-      improved,
-      '',
-      'Components kept:',
-      kept || '  (none)',
-      '',
-      'Components removed:',
-      removed || '  (none)',
-    ].join('\n');
-  }
-
-  function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
-    const body = { prompt };
-    if (inputText) body.input = inputText;
-    if (apiKey) body.api_key = apiKey;
-    return body;
-  }
-
-  function renderScoreSection(data) {
-    const score = data.over_engineered_score;
-    const pct = Math.round(score * 100);
-    scoreProgress.value = pct;
-    scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
-      'progress-error'
-    );
-    scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
-      'prompt is over-engineered'
-    );
-  }
-
-  function renderComponentsSection(data) {
-    const items = [];
-    (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
-    (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
-  }
-
-  async function loadHistory() {
-    analyzeSection.classList.add('hidden');
-    historySection.classList.remove('hidden');
-    historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
-    try {
-      const res = await fetch('/history', { headers: getAuthHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-      historyListEl.innerHTML = data.items.length === 0
-        ? '<li class="text-base-content/70">No history yet.</li>'
-        : data.items.map(item =>
-            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item flex justify-between items-start gap-2" data-prompt="${escapeAttr(item.prompt)}" data-improved-prompt="${escapeAttr(item.improved_prompt || '')}" title="Click to re-analyze">
-              <div class="min-w-0 flex-1">
-                <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-                <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
-              </div>
-              <button type="button" class="btn btn-ghost btn-sm shrink-0 history-item-copy" title="Copy improved prompt">Copy</button>
-            </li>`
-          ).join('');
-      document.querySelectorAll('.history-item').forEach(el => {
-        el.addEventListener('click', (e) => {
-          if (e.target.closest('.history-item-copy')) return;
-          const prompt = el.getAttribute('data-prompt');
-          if (prompt) {
-            promptInput.value = prompt;
-            historySection.classList.add('hidden');
-            analyzeSection.classList.remove('hidden');
-            promptInput.focus();
-          }
-        });
-      });
-      document.querySelectorAll('.history-item-copy').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const li = btn.closest('.history-item');
-          const text = li ? li.getAttribute('data-improved-prompt') || '' : '';
-          if (!text) return;
-          const originalLabel = btn.textContent;
-          try {
-            await navigator.clipboard.writeText(text);
-            btn.textContent = 'Copied!';
-          } catch {
-            btn.textContent = 'Copy failed';
-          }
-          setTimeout(() => { btn.textContent = originalLabel; }, 1500);
-        });
-      });
-    } catch (err) {
-      historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
-    }
-  }
-
-  function handleCtrlEnter(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      if (!analyzeSection.classList.contains('hidden') && historySection.classList.contains('hidden')) {
-        form.requestSubmit();
-      }
-    }
-  }
-
-  // --- Event listeners ---
-
-  promptInput.addEventListener('input', updatePromptCount);
-  promptInput.addEventListener('paste', () => setTimeout(updatePromptCount, 0));
-  inputField.addEventListener('input', updateInputCount);
-  inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
-  updatePromptCount();
-  updateInputCount();
-
-  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
-  applyTheme(savedTheme);
-
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (localStorage.getItem(THEME_KEY) === 'system') {
-      document.documentElement.setAttribute('data-theme', getEffectiveTheme('system'));
-    }
-  });
-
-  themeToggle.addEventListener('click', () => {
-    const current = localStorage.getItem(THEME_KEY) || 'dark';
-    const idx = THEMES.indexOf(current);
-    const next = THEMES[(idx + 1) % THEMES.length];
-    applyTheme(next);
-  });
-
-  window.addEventListener('hashchange', route);
-  route();
 
   const loginSubmitBtn = document.getElementById('login-submit-btn');
   const registerSubmitBtn = document.getElementById('register-submit-btn');
@@ -402,6 +268,38 @@
 
   logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
+  async function loadHistory() {
+    analyzeSection.classList.add('hidden');
+    historySection.classList.remove('hidden');
+    historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
+    try {
+      const res = await fetch('/history', { headers: getAuthHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+      historyListEl.innerHTML = data.items.length === 0
+        ? '<li class="text-base-content/70">No history yet.</li>'
+        : data.items.map(item =>
+            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
+              <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
+              <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+            </li>`
+          ).join('');
+      document.querySelectorAll('.history-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const prompt = el.getAttribute('data-prompt');
+          if (prompt) {
+            promptInput.value = prompt;
+            historySection.classList.add('hidden');
+            analyzeSection.classList.remove('hidden');
+            promptInput.focus();
+          }
+        });
+      });
+    } catch (err) {
+      historyListEl.innerHTML = '<li class="text-error">' + escapeHtml(err.message) + '</li>';
+    }
+  }
+
   historyBtn.addEventListener('click', loadHistory);
 
   document.getElementById('history-back').addEventListener('click', () => {
@@ -419,9 +317,41 @@
     promptInput.focus();
   });
 
+  async function copyWithFeedback(text, btnEl) {
+    if (!text) return;
+    const originalLabel = btnEl.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      btnEl.textContent = 'Copied!';
+    } catch {
+      btnEl.textContent = 'Copy failed';
+    }
+    setTimeout(() => { btnEl.textContent = originalLabel; }, 1500);
+  }
+
   copyImprovedBtn.addEventListener('click', () =>
     copyWithFeedback(improvedPromptEl.textContent || '', copyImprovedBtn)
   );
+
+  function buildReportText(data) {
+    if (!data) return '';
+    const score = Math.round((data.over_engineered_score || 0) * 100);
+    const improved = data.improved_prompt || '(unchanged)';
+    const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
+    const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
+    return [
+      'Over-engineered score: ' + score + '%',
+      '',
+      'Improved prompt:',
+      improved,
+      '',
+      'Components kept:',
+      kept || '  (none)',
+      '',
+      'Components removed:',
+      removed || '  (none)',
+    ].join('\n');
+  }
 
   copyReportBtn.addEventListener('click', () =>
     copyWithFeedback(buildReportText(lastAnalysisData), copyReportBtn)
@@ -440,6 +370,14 @@
     URL.revokeObjectURL(url);
   });
 
+  function handleCtrlEnter(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (!analyzeSection.classList.contains('hidden') && historySection.classList.contains('hidden')) {
+        form.requestSubmit();
+      }
+    }
+  }
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
@@ -462,7 +400,42 @@
     }
   });
 
-  form.addEventListener('submit', async (e) => {
+  function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
+    const body = { prompt };
+    if (inputText) body.input = inputText;
+    if (apiKey) body.api_key = apiKey;
+    return body;
+  }
+
+  function renderScoreSection(data) {
+    const score = data.over_engineered_score;
+    const pct = Math.round(score * 100);
+    scoreProgress.value = pct;
+    scoreProgress.className = 'progress w-full h-2 ' + (
+      score < 0.33 ? 'progress-success' :
+      score < 0.66 ? 'progress-warning' :
+      'progress-error'
+    );
+    scoreLabel.textContent = pct + '% – ' + (
+      score < 0.33 ? 'prompt is fairly optimal' :
+      score < 0.66 ? 'some redundancy detected' :
+      'prompt is over-engineered'
+    );
+  }
+
+  function renderComponentsSection(data) {
+    const items = [];
+    (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
+    (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
+    componentsEl.innerHTML = items.map(({ text, type }) =>
+      `<li class="flex items-start gap-2 py-3 text-sm">
+        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+        <span>${escapeHtml(text)}</span>
+      </li>`
+    ).join('');
+  }
+
+  async function handleAnalyzeSubmit(e) {
     e.preventDefault();
     const prompt = promptInput.value.trim();
     if (!prompt) return;
@@ -509,5 +482,7 @@
     } finally {
       submitBtn.disabled = false;
     }
-  });
+  }
+
+  form.addEventListener('submit', handleAnalyzeSubmit);
 })();
