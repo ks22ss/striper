@@ -158,7 +158,7 @@
     <section id="history-section" class="mt-8 hidden">
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
       <ul class="space-y-2" id="history-list"></ul>
-      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back" title="Back to analyze (Esc)">Back</button>
+      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back" title="Back to analyze (Esc). Ctrl+Shift+R to reload">Back</button>
     </section>
     </section>
   </div>
@@ -538,6 +538,12 @@
         e.preventDefault();
         if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
           historyBtn.click();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (!historySection.classList.contains('hidden')) {
+          loadHistory();
         }
       }
       if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
