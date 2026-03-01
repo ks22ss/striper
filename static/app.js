@@ -100,6 +100,25 @@
     return h;
   }
 
+  async function fetchHistory() {
+    const res = await fetch('/history', { headers: getAuthHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+    return data;
+  }
+
+  function downloadAsJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function showFormError(el, msg) {
     el.textContent = msg;
     el.classList.remove('hidden');
@@ -273,9 +292,7 @@
     historySection.classList.remove('hidden');
     historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
     try {
-      const res = await fetch('/history', { headers: getAuthHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+      const data = await fetchHistory();
       historyListEl.innerHTML = data.items.length === 0
         ? '<li class="text-base-content/70">No history yet.</li>'
         : data.items.map(item =>
@@ -314,18 +331,8 @@
       exportHistoryError.textContent = '';
       exportHistoryError.classList.add('hidden');
       try {
-        const res = await fetch('/history', { headers: getAuthHeaders() });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        const data = await fetchHistory();
+        downloadAsJson(data, 'striper-history.json');
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -385,15 +392,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson(lastAnalysisData, 'striper-analysis.json');
   });
 
   function handleCtrlEnter(e) {
