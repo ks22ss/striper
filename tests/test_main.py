@@ -91,6 +91,17 @@ def test_ui_includes_copy_report_button():
     assert "Copy report" in r.text
 
 
+def test_ui_includes_ctrl_shift_c_copy_report_shortcut():
+    """UI includes Ctrl+Shift+C shortcut for copy report (in HTML title or app.js)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    if "Ctrl+Shift+C" in r.text:
+        return
+    r_js = client.get("/static/app.js")
+    assert r_js.status_code == 200
+    assert "Ctrl+Shift+C" in r_js.text or ("shiftKey" in r_js.text and "key === 'C'" in r_js.text)
+
+
 def test_ui_includes_theme_toggle():
     """UI includes theme toggle button for light/dark/system mode."""
     r = client.get("/")
@@ -184,6 +195,21 @@ def test_ui_includes_escape_close_history():
     assert r.status_code == 200
     assert "history-back" in r.text
     assert "Esc" in r.text
+
+
+def test_ui_includes_copy_button_on_history_items():
+    """UI includes Copy button on each history item to copy improved prompt."""
+    # Copy button is in app.js (or inline script); check whichever serves the app logic
+    r = client.get("/")
+    assert r.status_code == 200
+    if "history-item-copy" in r.text:
+        assert "Copy" in r.text
+    else:
+        # JS extracted to app.js
+        r_js = client.get("/static/app.js")
+        assert r_js.status_code == 200
+        assert "history-item-copy" in r_js.text
+        assert "Copy" in r.text
 
 
 def test_analyze_unauthorized():
