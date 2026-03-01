@@ -158,7 +158,11 @@
     <section id="history-section" class="mt-8 hidden">
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
       <ul class="space-y-2" id="history-list"></ul>
-      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back" title="Back to analyze (Esc)">Back</button>
+      <div class="flex gap-2 mt-4 items-center">
+        <button type="button" class="btn btn-ghost btn-sm" id="history-back" title="Back to analyze (Esc) · Ctrl+Shift+R to reload">Back</button>
+        <button type="button" class="btn btn-outline btn-sm" id="export-history-btn" title="Download history as JSON">Export history</button>
+        <span class="text-sm text-error hidden" id="export-history-error"></span>
+      </div>
     </section>
     </section>
   </div>
@@ -454,6 +458,29 @@
 
     historyBtn.addEventListener('click', loadHistory);
 
+    document.getElementById('export-history-btn').addEventListener('click', async () => {
+      const errEl = document.getElementById('export-history-error');
+      errEl.textContent = '';
+      errEl.classList.add('hidden');
+      try {
+        const res = await fetch('/history', { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'striper-history.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        errEl.textContent = err.message || 'Export failed';
+        errEl.classList.remove('hidden');
+      }
+    });
+
     document.getElementById('history-back').addEventListener('click', () => {
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
@@ -538,6 +565,12 @@
         e.preventDefault();
         if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
           historyBtn.click();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (!historySection.classList.contains('hidden')) {
+          loadHistory();
         }
       }
       if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
