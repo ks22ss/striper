@@ -140,6 +140,69 @@ def _validate_prompt(
     return cosine_similarity(baseline_embedding, emb)
 
 
+def _phase_sequential_removal(
+    components: list[str],
+    baseline_embedding: list[float],
+    threshold: float,
+    user_input: str | None = None,
+    api_key: str | None = None,
+) -> set[int]:
+    """
+    Phase 1: Sequential cumulative removal in reverse order.
+    Test each component's redundancy; discard if similarity >= threshold.
+    Returns set of indices to keep (active_indices).
+    """
+    active_indices = set(range(len(components)))
+    for i in reversed(range(len(components))):
+        sim = _test_removal_similarity(
+            components, i, active_indices, baseline_embedding, user_input, api_key
+        )
+        if sim >= threshold:
+            active_indices.discard(i)
+    return active_indices
+
+
+def _phase_validate_and_recover(
+    components: list[str],
+    active_indices: set[int],
+    baseline_embedding: list[float],
+    threshold: float,
+    original_prompt: str,
+    user_input: str | None = None,
+    api_key: str | None = None,
+) -> tuple[set[int], list[str], list[str], str]:
+    """
+    Phase 2 & 3: Validate improved prompt; if validation fails, greedy recovery.
+    Returns (redundant_indices, components_kept, components_removed, improved_prompt).
+    """
+    redundant_indices = set(range(len(components))) - active_indices
+    components_kept, components_removed = _classify_components(components, redundant_indices)
+    improved_prompt = _build_improved_prompt(components_kept, original_prompt)
+
+    validation_sim = _validate_prompt(
+        improved_prompt, baseline_embedding, user_input, api_key
+    )
+
+    if validation_sim < threshold and redundant_indices:
+        for idx in sorted(redundant_indices):
+            active_indices.add(idx)
+            candidate_kept = [components[j] for j in sorted(active_indices)]
+            candidate_prompt = " ".join(candidate_kept)
+            validation_sim = _validate_prompt(
+                candidate_prompt, baseline_embedding, user_input, api_key
+            )
+            if validation_sim >= threshold:
+                break
+
+        redundant_indices = set(range(len(components))) - active_indices
+        components_kept, components_removed = _classify_components(
+            components, redundant_indices
+        )
+        improved_prompt = _build_improved_prompt(components_kept, original_prompt)
+
+    return redundant_indices, components_kept, components_removed, improved_prompt
+
+
 def run_stripe_analysis(
     prompt: str,
     user_input: str | None = None,
@@ -170,41 +233,20 @@ def run_stripe_analysis(
     baseline_embedding = get_embedding(baseline_output, api_key=api_key)
     threshold = _get_similarity_threshold()
 
-    # --- Phase 1: Sequential cumulative removal (reverse order) ---
-    active_indices = set(range(len(components)))
-    for i in reversed(range(len(components))):
-        sim = _test_removal_similarity(
-            components, i, active_indices, baseline_embedding, user_input, api_key
-        )
-        if sim >= threshold:
-            active_indices.discard(i)
-
-    # --- Phase 2: Validate the combined improved prompt ---
-    redundant_indices = set(range(len(components))) - active_indices
-    components_kept, components_removed = _classify_components(components, redundant_indices)
-    improved_prompt = _build_improved_prompt(components_kept, prompt)
-
-    validation_sim = _validate_prompt(
-        improved_prompt, baseline_embedding, user_input, api_key
+    active_indices = _phase_sequential_removal(
+        components, baseline_embedding, threshold, user_input, api_key
     )
-
-    # --- Phase 3: Greedy recovery if validation failed ---
-    if validation_sim < threshold and redundant_indices:
-        for idx in sorted(redundant_indices):
-            active_indices.add(idx)
-            candidate_kept = [components[j] for j in sorted(active_indices)]
-            candidate_prompt = " ".join(candidate_kept)
-            validation_sim = _validate_prompt(
-                candidate_prompt, baseline_embedding, user_input, api_key
-            )
-            if validation_sim >= threshold:
-                break
-
-        redundant_indices = set(range(len(components))) - active_indices
-        components_kept, components_removed = _classify_components(
-            components, redundant_indices
+    redundant_indices, components_kept, components_removed, improved_prompt = (
+        _phase_validate_and_recover(
+            components,
+            active_indices,
+            baseline_embedding,
+            threshold,
+            prompt,
+            user_input,
+            api_key,
         )
-        improved_prompt = _build_improved_prompt(components_kept, prompt)
+    )
 
     over_engineered_score = (
         len(redundant_indices) / len(components) if components else 0.0

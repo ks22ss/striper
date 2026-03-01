@@ -388,6 +388,12 @@
         historyBtn.click();
       }
     }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+      e.preventDefault();
+      if (!historySection.classList.contains('hidden')) {
+        loadHistory();
+      }
+    }
     if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
