@@ -42,6 +42,18 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptTemplatesEl = document.getElementById('prompt-templates');
+
+  const PROMPT_TEMPLATES = {
+    'customer-support':
+      'You are a customer support agent. Be helpful and concise. Always use bullet points. Never use markdown. Respond in under 100 words. End with "Is there anything else I can help with?"',
+    'code-review':
+      'You are a senior software engineer. Review the code for bugs, security issues, and style. Provide: 1) Summary. 2) Critical issues. 3) Suggestions. Use bullet points. Be concise. Output plain text only.',
+    summarization:
+      'You are a summarization expert. Summarize the text in 3-5 sentences. Use professional language. Do not include opinions. Output plain text only. Never use markdown.',
+    'creative-writing':
+      'You are a creative writer. Write engaging, vivid prose. Use varied sentence structure. Include sensory details. Avoid clichés. Keep paragraphs short. Output in plain text.',
+  };
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -60,6 +72,7 @@
     promptInput.value = '';
     inputField.value = '';
     apiKeyInput.value = '';
+    if (promptTemplatesEl) promptTemplatesEl.value = '';
     resultsEl.classList.add('hidden');
     statusEl.textContent = '';
     statusEl.className = 'text-sm text-base-content/70';
@@ -92,6 +105,17 @@
   inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
   updatePromptCount();
   updateInputCount();
+
+  if (promptTemplatesEl) {
+    promptTemplatesEl.addEventListener('change', () => {
+      const id = promptTemplatesEl.value;
+      if (id && PROMPT_TEMPLATES[id]) {
+        promptInput.value = PROMPT_TEMPLATES[id];
+        updatePromptCount();
+        promptInput.focus();
+      }
+    });
+  }
 
   function getAuthHeaders() {
     const token = localStorage.getItem(AUTH_KEY);

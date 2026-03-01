@@ -202,6 +202,24 @@ def test_ui_includes_reload_history_keyboard_shortcut():
     assert "Ctrl+Shift+R" in r.text
 
 
+def test_ui_includes_prompt_templates():
+    """UI includes prompt templates dropdown for quick preset loading."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-templates" in r.text
+    assert "Load template" in r.text
+    assert "Customer support" in r.text
+    assert "Code review" in r.text
+
+
+def test_app_js_includes_prompt_templates_handler():
+    """app.js wires prompt templates dropdown to populate prompt field."""
+    r = client.get("/static/app.js")
+    assert r.status_code == 200
+    assert "PROMPT_TEMPLATES" in r.text
+    assert "prompt-templates" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
