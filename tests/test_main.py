@@ -91,6 +91,13 @@ def test_ui_includes_copy_report_button():
     assert "Copy report" in r.text
 
 
+def test_ui_includes_copy_report_shortcut_hint():
+    """Copy report button shows Ctrl+Shift+C shortcut in tooltip."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Ctrl+Shift+C" in r.text
+
+
 def test_ui_includes_theme_toggle():
     """UI includes theme toggle button for light/dark/system mode."""
     r = client.get("/")
@@ -200,6 +207,13 @@ def test_ui_includes_reload_history_keyboard_shortcut():
     assert r.status_code == 200
     assert "history-back" in r.text
     assert "Ctrl+Shift+R" in r.text
+
+
+def test_app_js_includes_history_copy_button():
+    """app.js renders Copy button on history items (regression)."""
+    r = client.get("/static/app.js")
+    assert r.status_code == 200
+    assert "history-item-copy-btn" in r.text
 
 
 def test_analyze_unauthorized():
