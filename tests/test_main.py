@@ -202,6 +202,24 @@ def test_ui_includes_reload_history_keyboard_shortcut():
     assert "Ctrl+Shift+R" in r.text
 
 
+def test_ui_includes_shortcuts_help_modal():
+    """UI includes shortcuts help modal and button."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "shortcuts-modal" in r.text
+    assert "shortcuts-btn" in r.text
+    assert "Keyboard shortcuts" in r.text
+    assert "Ctrl+Shift+?" in r.text or "Ctrl" in r.text
+
+
+def test_app_js_includes_shortcuts_modal_handler():
+    """app.js wires shortcuts modal (Ctrl+Shift+?)."""
+    r = client.get("/static/app.js")
+    assert r.status_code == 200
+    assert "shortcutsModal" in r.text
+    assert "showModal" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

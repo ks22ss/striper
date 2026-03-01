@@ -42,6 +42,8 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const shortcutsBtn = document.getElementById('shortcuts-btn');
+  const shortcutsModal = document.getElementById('shortcuts-modal');
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -268,6 +270,16 @@
 
   logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
+  if (shortcutsBtn && shortcutsModal) {
+    shortcutsBtn.addEventListener('click', () => shortcutsModal.showModal());
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '?') {
+        e.preventDefault();
+        if (!appPage.classList.contains('hidden')) shortcutsModal.showModal();
+      }
+    });
+  }
+
   async function loadHistory() {
     analyzeSection.classList.add('hidden');
     historySection.classList.remove('hidden');
@@ -420,9 +432,13 @@
         loadHistory();
       }
     }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
+    if (e.key === 'Escape') {
+      if (shortcutsModal && shortcutsModal.open) {
+        shortcutsModal.close();
+      } else if (!historySection.classList.contains('hidden')) {
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+      }
     }
   });
 
