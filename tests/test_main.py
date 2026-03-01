@@ -186,6 +186,14 @@ def test_ui_includes_escape_close_history():
     assert "Esc" in r.text
 
 
+def test_ui_includes_reload_history_shortcut():
+    """UI includes Ctrl+Shift+R to reload history hint."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "Ctrl+Shift+R" in r.text
+    assert "reload" in r.text.lower()
+
+
 def test_ui_includes_export_history_button():
     """UI includes Export history button for downloading history as JSON."""
     r = client.get("/")

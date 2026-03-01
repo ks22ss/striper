@@ -159,7 +159,7 @@
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
       <ul class="space-y-2" id="history-list"></ul>
       <div class="flex gap-2 mt-4 items-center">
-        <button type="button" class="btn btn-ghost btn-sm" id="history-back" title="Back to analyze (Esc)">Back</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="history-back" title="Back to analyze (Esc) · Ctrl+Shift+R to reload">Back</button>
         <button type="button" class="btn btn-outline btn-sm" id="export-history-btn" title="Download history as JSON">Export history</button>
         <span class="text-sm text-error hidden" id="export-history-error"></span>
       </div>
@@ -565,6 +565,12 @@
         e.preventDefault();
         if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
           historyBtn.click();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+        e.preventDefault();
+        if (!historySection.classList.contains('hidden')) {
+          loadHistory();
         }
       }
       if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
