@@ -72,6 +72,7 @@
       </div>
       <div id="auth-section" class="flex items-center gap-2">
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark/system theme" aria-label="Toggle theme">🌙</button>
+        <button type="button" class="btn btn-ghost btn-sm btn-square" id="shortcuts-btn" title="Keyboard shortcuts (Ctrl+Shift+?)" aria-label="Shortcuts">⌘</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
         <button type="button" class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
@@ -166,6 +167,24 @@
     </section>
     </section>
   </div>
+
+  <!-- Keyboard shortcuts help modal -->
+  <dialog id="shortcuts-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-semibold text-lg mb-4">Keyboard shortcuts</h3>
+      <ul class="space-y-2 text-sm">
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Enter</kbd> – Submit analyze form</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">H</kbd> – Open history</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">R</kbd> – Reload history</li>
+        <li><kbd class="kbd kbd-sm">Escape</kbd> – Close history</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">?</kbd> – Show this help</li>
+      </ul>
+      <p class="text-xs text-base-content/60 mt-4">Use <kbd class="kbd kbd-xs">Ctrl</kbd> on Windows/Linux, <kbd class="kbd kbd-xs">⌘</kbd> on Mac.</p>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit">close</button>
+    </form>
+  </dialog>
 
   <script src="/static/app.js" defer></script>
 </body>
