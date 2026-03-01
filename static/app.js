@@ -279,13 +279,19 @@
       historyListEl.innerHTML = data.items.length === 0
         ? '<li class="text-base-content/70">No history yet.</li>'
         : data.items.map(item =>
-            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
-              <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-              <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
-            </li>`
+            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" data-improved="${escapeAttr(item.improved_prompt || '')}" title="Click to re-analyze">
+                <div class="flex justify-between items-start gap-2">
+                  <div class="flex-1 min-w-0">
+                    <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
+                    <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+                  </div>
+                  <button type="button" class="btn btn-ghost btn-xs shrink-0 history-copy-btn" title="Copy improved prompt">Copy</button>
+                </div>
+              </li>`
           ).join('');
       document.querySelectorAll('.history-item').forEach(el => {
-        el.addEventListener('click', () => {
+        el.addEventListener('click', (e) => {
+          if (e.target.closest('.history-copy-btn')) return;
           const prompt = el.getAttribute('data-prompt');
           if (prompt) {
             promptInput.value = prompt;
@@ -293,6 +299,14 @@
             analyzeSection.classList.remove('hidden');
             promptInput.focus();
           }
+        });
+      });
+      document.querySelectorAll('.history-copy-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const li = btn.closest('.history-item');
+          const improved = li ? li.getAttribute('data-improved') || '' : '';
+          await copyWithFeedback(improved, btn);
         });
       });
     } catch (err) {

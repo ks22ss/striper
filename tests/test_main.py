@@ -186,6 +186,16 @@ def test_ui_includes_escape_close_history():
     assert "Esc" in r.text
 
 
+def test_ui_includes_copy_improved_from_history():
+    """UI includes Copy button on history items to copy improved prompt (in app.js)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    r_js = client.get("/static/app.js")
+    assert r_js.status_code == 200
+    assert "history-copy-btn" in r_js.text
+    assert "Copy improved prompt" in r_js.text or "Copy" in r_js.text
+
+
 def test_ui_includes_export_history_button():
     """UI includes Export history button to download history as JSON."""
     r = client.get("/")
