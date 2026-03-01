@@ -186,6 +186,21 @@ def test_ui_includes_escape_close_history():
     assert "Esc" in r.text
 
 
+def test_ui_includes_copy_button_on_history_items():
+    """UI includes Copy button on each history item to copy improved prompt."""
+    # Copy button is in app.js (or inline script); check whichever serves the app logic
+    r = client.get("/")
+    assert r.status_code == 200
+    if "history-item-copy" in r.text:
+        assert "Copy" in r.text
+    else:
+        # JS extracted to app.js
+        r_js = client.get("/static/app.js")
+        assert r_js.status_code == 200
+        assert "history-item-copy" in r_js.text
+        assert "Copy" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
