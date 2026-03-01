@@ -184,9 +184,7 @@ def run_stripe_analysis(
     components_kept, components_removed = _classify_components(components, redundant_indices)
     improved_prompt = _build_improved_prompt(components_kept, prompt)
 
-    validation_sim = _validate_prompt(
-        improved_prompt, baseline_embedding, user_input, api_key
-    )
+    validation_sim = _validate_prompt(improved_prompt, baseline_embedding, user_input, api_key)
 
     # --- Phase 3: Greedy recovery if validation failed ---
     if validation_sim < threshold and redundant_indices:
@@ -201,14 +199,10 @@ def run_stripe_analysis(
                 break
 
         redundant_indices = set(range(len(components))) - active_indices
-        components_kept, components_removed = _classify_components(
-            components, redundant_indices
-        )
+        components_kept, components_removed = _classify_components(components, redundant_indices)
         improved_prompt = _build_improved_prompt(components_kept, prompt)
 
-    over_engineered_score = (
-        len(redundant_indices) / len(components) if components else 0.0
-    )
+    over_engineered_score = len(redundant_indices) / len(components) if components else 0.0
     return _build_analysis_result(
         over_engineered_score,
         improved_prompt,

@@ -167,6 +167,8 @@
     const AUTH_KEY = 'striper_token';
     const USER_KEY = 'striper_user';
     const THEME_KEY = 'striper_theme';
+    const SCORE_OPTIMAL = 0.33;
+    const SCORE_REDUNDANT = 0.66;
 
     const landingPage = document.getElementById('landing-page');
     const loginPage = document.getElementById('login-page');
@@ -558,13 +560,13 @@
       const pct = Math.round(score * 100);
       scoreProgress.value = pct;
       scoreProgress.className = 'progress w-full h-2 ' + (
-        score < 0.33 ? 'progress-success' :
-        score < 0.66 ? 'progress-warning' :
+        score < SCORE_OPTIMAL ? 'progress-success' :
+        score < SCORE_REDUNDANT ? 'progress-warning' :
         'progress-error'
       );
       scoreLabel.textContent = pct + '% – ' + (
-        score < 0.33 ? 'prompt is fairly optimal' :
-        score < 0.66 ? 'some redundancy detected' :
+        score < SCORE_OPTIMAL ? 'prompt is fairly optimal' :
+        score < SCORE_REDUNDANT ? 'some redundancy detected' :
         'prompt is over-engineered'
       );
     }
