@@ -95,7 +95,8 @@ def _fetch_ui():
         ("register-page", ["register-form", "register-submit-btn", "#/login"]),
         ("app-page", ["logout-btn", "Logout"]),
         ("history-btn", ["Ctrl+Shift+H"]),
-        ("history-back", ["Esc"]),
+        ("history-back", ["Esc", "Ctrl+Shift+R"]),
+        ("export-history-btn", ["Export history"]),
     ],
     ids=[
         "prompt_length_indicator",
@@ -109,6 +110,7 @@ def _fetch_ui():
         "app_page",
         "history_keyboard_shortcut",
         "escape_close_history",
+        "export_history_button",
     ],
 )
 def test_ui_includes_element(element_id, required_in_text):
