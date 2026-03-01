@@ -533,16 +533,35 @@
     promptInput.addEventListener('keydown', handleCtrlEnter);
     inputField.addEventListener('keydown', handleCtrlEnter);
 
+    const KEYBOARD_SHORTCUTS = [
+      {
+        key: 'H',
+        ctrlOrMeta: true,
+        shift: true,
+        when: () => localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden'),
+        action: () => historyBtn.click(),
+      },
+      {
+        key: 'Escape',
+        ctrlOrMeta: false,
+        shift: false,
+        when: () => !historySection.classList.contains('hidden'),
+        action: () => {
+          historySection.classList.add('hidden');
+          analyzeSection.classList.remove('hidden');
+        },
+      },
+    ];
+
     document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
-        e.preventDefault();
-        if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
-          historyBtn.click();
+      for (const s of KEYBOARD_SHORTCUTS) {
+        const modOk = s.ctrlOrMeta ? (e.ctrlKey || e.metaKey) : true;
+        const shiftOk = s.shift ? e.shiftKey : true;
+        if (e.key === s.key && modOk && shiftOk && s.when()) {
+          e.preventDefault();
+          s.action();
+          break;
         }
-      }
-      if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-        historySection.classList.add('hidden');
-        analyzeSection.classList.remove('hidden');
       }
     });
 
