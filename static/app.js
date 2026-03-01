@@ -307,6 +307,32 @@
     analyzeSection.classList.remove('hidden');
   });
 
+  const exportHistoryBtn = document.getElementById('export-history-btn');
+  const exportHistoryError = document.getElementById('export-history-error');
+  if (exportHistoryBtn && exportHistoryError) {
+    exportHistoryBtn.addEventListener('click', async () => {
+      exportHistoryError.textContent = '';
+      exportHistoryError.classList.add('hidden');
+      try {
+        const res = await fetch('/history', { headers: getAuthHeaders() });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'striper-history.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        exportHistoryError.textContent = err.message || 'Export failed';
+        exportHistoryError.classList.remove('hidden');
+      }
+    });
+  }
+
   clearFormBtn.addEventListener('click', clearForm);
 
   useImprovedBtn.addEventListener('click', () => {

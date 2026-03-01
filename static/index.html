@@ -158,7 +158,11 @@
     <section id="history-section" class="mt-8 hidden">
       <h3 class="text-lg font-semibold mb-4">Prompt history</h3>
       <ul class="space-y-2" id="history-list"></ul>
-      <button type="button" class="btn btn-ghost btn-sm mt-4" id="history-back" title="Back to analyze (Esc). Ctrl+Shift+R to reload">Back</button>
+      <div class="flex gap-2 mt-4 items-center flex-wrap">
+        <button type="button" class="btn btn-ghost btn-sm" id="history-back" title="Back to analyze (Esc). Ctrl+Shift+R to reload">Back</button>
+        <button type="button" class="btn btn-outline btn-sm" id="export-history-btn" title="Download history as JSON">Export history</button>
+        <span class="text-sm text-error hidden" id="export-history-error"></span>
+      </div>
     </section>
     </section>
   </div>
