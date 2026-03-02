@@ -8,6 +8,8 @@
   const AUTH_KEY = 'striper_token';
   const USER_KEY = 'striper_user';
   const THEME_KEY = 'striper_theme';
+  const SCORE_OPTIMAL = 0.33;
+  const SCORE_REDUNDANT = 0.66;
 
   const landingPage = document.getElementById('landing-page');
   const loginPage = document.getElementById('login-page');
@@ -433,20 +435,19 @@
     return body;
   }
 
+  function getScoreDisplayInfo(score) {
+    if (score < SCORE_OPTIMAL) return { progressClass: 'progress-success', label: 'prompt is fairly optimal' };
+    if (score < SCORE_REDUNDANT) return { progressClass: 'progress-warning', label: 'some redundancy detected' };
+    return { progressClass: 'progress-error', label: 'prompt is over-engineered' };
+  }
+
   function renderScoreSection(data) {
     const score = data.over_engineered_score;
     const pct = Math.round(score * 100);
+    const { progressClass, label } = getScoreDisplayInfo(score);
     scoreProgress.value = pct;
-    scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
-      'progress-error'
-    );
-    scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
-      'prompt is over-engineered'
-    );
+    scoreProgress.className = 'progress w-full h-2 ' + progressClass;
+    scoreLabel.textContent = pct + '% – ' + label;
   }
 
   function renderComponentsSection(data) {
