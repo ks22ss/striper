@@ -8,6 +8,8 @@
   const AUTH_KEY = 'striper_token';
   const USER_KEY = 'striper_user';
   const THEME_KEY = 'striper_theme';
+  const SCORE_OPTIMAL = 0.33;
+  const SCORE_REDUNDANT = 0.66;
 
   const landingPage = document.getElementById('landing-page');
   const loginPage = document.getElementById('login-page');
@@ -33,6 +35,7 @@
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
   const scoreLabel = document.getElementById('score-label');
+  const overEngineeredExplanationEl = document.getElementById('over-engineered-explanation');
   const improvedPromptEl = document.getElementById('improved-prompt');
   const componentsEl = document.getElementById('components');
   const copyImprovedBtn = document.getElementById('copy-improved-btn');
@@ -309,6 +312,18 @@
 
   const exportHistoryBtn = document.getElementById('export-history-btn');
   const exportHistoryError = document.getElementById('export-history-error');
+  function downloadAsJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (exportHistoryBtn && exportHistoryError) {
     exportHistoryBtn.addEventListener('click', async () => {
       exportHistoryError.textContent = '';
@@ -317,15 +332,7 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadAsJson(data, 'striper-history.json');
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -362,11 +369,15 @@
   function buildReportText(data) {
     if (!data) return '';
     const score = Math.round((data.over_engineered_score || 0) * 100);
+    const explanation = data.over_engineered_explanation || '';
     const improved = data.improved_prompt || '(unchanged)';
     const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
     const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
+    const parts = [
       'Over-engineered score: ' + score + '%',
+      '',
+      'Over-engineered areas:',
+      explanation || '  (none)',
       '',
       'Improved prompt:',
       improved,
@@ -376,7 +387,8 @@
       '',
       'Components removed:',
       removed || '  (none)',
-    ].join('\n');
+    ];
+    return parts.join('\n');
   }
 
   copyReportBtn.addEventListener('click', () =>
@@ -385,15 +397,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson(lastAnalysisData, 'striper-analysis.json');
   });
 
   function handleCtrlEnter(e) {
@@ -433,32 +437,47 @@
     return body;
   }
 
+  function getScoreDisplayInfo(score) {
+    const pct = Math.round(score * 100);
+    const progressClass =
+      score < SCORE_OPTIMAL
+        ? 'progress-success'
+        : score < SCORE_REDUNDANT
+          ? 'progress-warning'
+          : 'progress-error';
+    const label =
+      score < SCORE_OPTIMAL
+        ? 'prompt is fairly optimal'
+        : score < SCORE_REDUNDANT
+          ? 'some redundancy detected'
+          : 'prompt is over-engineered';
+    return { pct, progressClass, label };
+  }
+
   function renderScoreSection(data) {
     const score = data.over_engineered_score;
-    const pct = Math.round(score * 100);
+    const { pct, progressClass, label } = getScoreDisplayInfo(score);
     scoreProgress.value = pct;
-    scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
-      'progress-error'
-    );
-    scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
-      'prompt is over-engineered'
-    );
+    scoreProgress.className = 'progress w-full h-2 ' + progressClass;
+    scoreLabel.textContent = pct + '% – ' + label;
   }
 
   function renderComponentsSection(data) {
     const items = [];
     (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
     (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
+    const componentsCard = componentsEl.closest('.card');
+    if (items.length === 0 && componentsCard) {
+      componentsCard.classList.add('hidden');
+    } else if (componentsCard) {
+      componentsCard.classList.remove('hidden');
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -494,6 +513,7 @@
       }
 
       renderScoreSection(data);
+      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
       improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
       lastAnalysisData = data;
       renderComponentsSection(data);
