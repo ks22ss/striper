@@ -413,22 +413,30 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
+  /** Keyboard shortcuts config. DRY: single source of truth for key bindings. */
+  function matchesShortcut(e, keys) {
+    const k = e.key.toLowerCase();
+    const needCtrl = keys.includes('ctrl');
+    const needShift = keys.includes('shift');
+    const keyMatch = keys.filter((x) => !['ctrl', 'shift', 'meta'].includes(x))[0];
+    if (needCtrl && !(e.ctrlKey || e.metaKey)) return false;
+    if (needShift && !e.shiftKey) return false;
+    return keyMatch ? k === keyMatch.toLowerCase() : k === 'escape';
+  }
+
+  const KEYBOARD_SHORTCUTS = [
+    { keys: ['ctrl', 'shift', 'h'], action: () => { if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) historyBtn.click(); } },
+    { keys: ['ctrl', 'shift', 'r'], action: () => { if (!historySection.classList.contains('hidden')) loadHistory(); } },
+    { keys: ['escape'], action: () => { if (!historySection.classList.contains('hidden')) { historySection.classList.add('hidden'); analyzeSection.classList.remove('hidden'); } } },
+  ];
+
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
-      e.preventDefault();
-      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
-        historyBtn.click();
+    for (const { keys, action } of KEYBOARD_SHORTCUTS) {
+      if (matchesShortcut(e, keys)) {
+        e.preventDefault();
+        action();
+        break;
       }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
-      e.preventDefault();
-      if (!historySection.classList.contains('hidden')) {
-        loadHistory();
-      }
-    }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
     }
   });
 
