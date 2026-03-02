@@ -33,6 +33,7 @@
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
   const scoreLabel = document.getElementById('score-label');
+  const overEngineeredExplanationEl = document.getElementById('over-engineered-explanation');
   const improvedPromptEl = document.getElementById('improved-prompt');
   const componentsEl = document.getElementById('components');
   const copyImprovedBtn = document.getElementById('copy-improved-btn');
@@ -362,11 +363,15 @@
   function buildReportText(data) {
     if (!data) return '';
     const score = Math.round((data.over_engineered_score || 0) * 100);
+    const explanation = data.over_engineered_explanation || '';
     const improved = data.improved_prompt || '(unchanged)';
     const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
     const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
+    const parts = [
       'Over-engineered score: ' + score + '%',
+      '',
+      'Over-engineered areas:',
+      explanation || '  (none)',
       '',
       'Improved prompt:',
       improved,
@@ -376,7 +381,8 @@
       '',
       'Components removed:',
       removed || '  (none)',
-    ].join('\n');
+    ];
+    return parts.join('\n');
   }
 
   copyReportBtn.addEventListener('click', () =>
@@ -407,22 +413,30 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
+  /** Keyboard shortcuts config. DRY: single source of truth for key bindings. */
+  function matchesShortcut(e, keys) {
+    const k = e.key.toLowerCase();
+    const needCtrl = keys.includes('ctrl');
+    const needShift = keys.includes('shift');
+    const keyMatch = keys.filter((x) => !['ctrl', 'shift', 'meta'].includes(x))[0];
+    if (needCtrl && !(e.ctrlKey || e.metaKey)) return false;
+    if (needShift && !e.shiftKey) return false;
+    return keyMatch ? k === keyMatch.toLowerCase() : k === 'escape';
+  }
+
+  const KEYBOARD_SHORTCUTS = [
+    { keys: ['ctrl', 'shift', 'h'], action: () => { if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) historyBtn.click(); } },
+    { keys: ['ctrl', 'shift', 'r'], action: () => { if (!historySection.classList.contains('hidden')) loadHistory(); } },
+    { keys: ['escape'], action: () => { if (!historySection.classList.contains('hidden')) { historySection.classList.add('hidden'); analyzeSection.classList.remove('hidden'); } } },
+  ];
+
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
-      e.preventDefault();
-      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
-        historyBtn.click();
+    for (const { keys, action } of KEYBOARD_SHORTCUTS) {
+      if (matchesShortcut(e, keys)) {
+        e.preventDefault();
+        action();
+        break;
       }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
-      e.preventDefault();
-      if (!historySection.classList.contains('hidden')) {
-        loadHistory();
-      }
-    }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
     }
   });
 
@@ -453,12 +467,18 @@
     const items = [];
     (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
     (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
+    const componentsCard = componentsEl.closest('.card');
+    if (items.length === 0 && componentsCard) {
+      componentsCard.classList.add('hidden');
+    } else if (componentsCard) {
+      componentsCard.classList.remove('hidden');
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -494,6 +514,7 @@
       }
 
       renderScoreSection(data);
+      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
       improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
       lastAnalysisData = data;
       renderComponentsSection(data);
