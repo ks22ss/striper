@@ -86,11 +86,12 @@ def test_ui_includes_prompt_length_indicator():
 
 
 def test_ui_includes_copy_report_button():
-    """UI includes Copy report button for full analysis."""
+    """UI includes Copy report button with Ctrl+Shift+C shortcut."""
     r = client.get("/")
     assert r.status_code == 200
     assert "copy-report-btn" in r.text
     assert "Copy report" in r.text
+    assert "Ctrl+Shift+C" in r.text
 
 
 def test_ui_includes_theme_toggle():

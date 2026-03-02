@@ -426,6 +426,12 @@
         loadHistory();
       }
     }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+      e.preventDefault();
+      if (lastAnalysisData && !resultsEl.classList.contains('hidden')) {
+        copyWithFeedback(buildReportText(lastAnalysisData), copyReportBtn);
+      }
+    }
     if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
