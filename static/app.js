@@ -420,6 +420,12 @@
         loadHistory();
       }
     }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+      e.preventDefault();
+      if (!analyzeSection.classList.contains('hidden') && lastAnalysisData) {
+        copyWithFeedback(buildReportText(lastAnalysisData), copyReportBtn);
+      }
+    }
     if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
       historySection.classList.add('hidden');
       analyzeSection.classList.remove('hidden');
