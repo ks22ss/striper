@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from openai import AuthenticationError
 
+from app.ai_analysis import run_ai_analysis
 from app.auth import authenticate_user, create_access_token, get_current_user, hash_password
 from app.database import (
     HISTORY_LIMIT_DEFAULT,
@@ -30,7 +31,6 @@ from app.models import (
     UserCreate,
     UserResponse,
 )
-from app.stripe import run_stripe_analysis
 
 
 def _is_api_key_error(exc: Exception) -> bool:
@@ -110,7 +110,7 @@ async def analyze(
     Requires authentication. Saves result to user's prompt history.
     """
     try:
-        result = run_stripe_analysis(
+        result = run_ai_analysis(
             request.prompt,
             user_input=request.input,
             api_key=request.api_key,
