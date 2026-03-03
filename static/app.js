@@ -44,6 +44,8 @@
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
   const promptTemplatesSelect = document.getElementById('prompt-templates');
+  const shortcutsBtn = document.getElementById('shortcuts-btn');
+  const shortcutsModal = document.getElementById('shortcuts-modal');
 
   const PROMPT_TEMPLATES = {
     summarizer: 'Summarize the document. Keep the main points. Use bullet points.',
@@ -221,6 +223,10 @@
     const next = THEMES[(idx + 1) % THEMES.length];
     applyTheme(next);
   });
+
+  if (shortcutsBtn && shortcutsModal) {
+    shortcutsBtn.addEventListener('click', () => shortcutsModal.showModal());
+  }
 
   window.addEventListener('hashchange', route);
   route();

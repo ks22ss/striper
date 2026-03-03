@@ -127,6 +127,15 @@ def test_ui_includes_prompt_templates():
     assert "Custom (start blank)" in r.text
 
 
+def test_ui_includes_shortcuts_modal():
+    """UI includes keyboard shortcuts button and modal."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "shortcuts-btn" in r.text
+    assert "shortcuts-modal" in r.text
+    assert "Keyboard shortcuts" in r.text
+
+
 def test_ui_includes_input_length_indicator():
     """UI includes input field length (chars/words) indicator."""
     r = client.get("/")
