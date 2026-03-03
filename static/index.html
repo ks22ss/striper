@@ -92,6 +92,21 @@
         placeholder="sk-..."
         autocomplete="off"
       />
+      <label for="prompt-templates" class="label mt-4">
+        <span class="label-text font-medium">Prompt template</span>
+        <span class="label-text-alt text-base-content/60">Quick-start templates</span>
+      </label>
+      <select
+        id="prompt-templates"
+        class="select select-bordered w-full max-w-xs"
+        aria-label="Choose a prompt template"
+      >
+        <option value="">Custom (start blank)</option>
+        <option value="summarizer">Summarizer</option>
+        <option value="code-assistant">Code assistant</option>
+        <option value="qa-bot">QA bot</option>
+        <option value="json-output">JSON output assistant</option>
+      </select>
       <label for="prompt" class="label mt-4">
         <span class="label-text font-medium">Your prompt</span>
         <span class="label-text-alt text-base-content/60" id="prompt-count">0 chars, 0 words</span>

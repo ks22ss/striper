@@ -118,6 +118,15 @@ def test_ui_includes_download_json_button():
     assert "Download JSON" in r.text
 
 
+def test_ui_includes_prompt_templates():
+    """UI includes prompt templates dropdown."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-templates" in r.text
+    assert "Summarizer" in r.text
+    assert "Custom (start blank)" in r.text
+
+
 def test_ui_includes_input_length_indicator():
     """UI includes input field length (chars/words) indicator."""
     r = client.get("/")

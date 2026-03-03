@@ -43,6 +43,14 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptTemplatesSelect = document.getElementById('prompt-templates');
+
+  const PROMPT_TEMPLATES = {
+    summarizer: 'Summarize the document. Keep the main points. Use bullet points.',
+    'code-assistant': 'You are a helpful coding assistant. Explain code clearly. Prefer concise answers.',
+    'qa-bot': "Answer the user's question accurately. If unsure, say so. Be concise.",
+    'json-output': 'Respond with valid JSON only. No additional text or markdown.',
+  };
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -61,6 +69,7 @@
     promptInput.value = '';
     inputField.value = '';
     apiKeyInput.value = '';
+    if (promptTemplatesSelect) promptTemplatesSelect.value = '';
     resultsEl.classList.add('hidden');
     statusEl.textContent = '';
     statusEl.className = 'text-sm text-base-content/70';
@@ -93,6 +102,16 @@
   inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
   updatePromptCount();
   updateInputCount();
+
+  if (promptTemplatesSelect) {
+    promptTemplatesSelect.addEventListener('change', () => {
+      const key = promptTemplatesSelect.value;
+      const text = PROMPT_TEMPLATES[key] || '';
+      promptInput.value = text;
+      updatePromptCount();
+      promptInput.focus();
+    });
+  }
 
   function getAuthHeaders() {
     const token = localStorage.getItem(AUTH_KEY);
