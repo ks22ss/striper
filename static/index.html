@@ -71,6 +71,7 @@
         <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
       </div>
       <div id="auth-section" class="flex items-center gap-2">
+        <button type="button" class="btn btn-ghost btn-sm btn-square" id="shortcuts-btn" title="Keyboard shortcuts" aria-label="Keyboard shortcuts">?</button>
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark/system theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
@@ -92,6 +93,21 @@
         placeholder="sk-..."
         autocomplete="off"
       />
+      <label for="prompt-templates" class="label mt-4">
+        <span class="label-text font-medium">Prompt template</span>
+        <span class="label-text-alt text-base-content/60">Quick-start templates</span>
+      </label>
+      <select
+        id="prompt-templates"
+        class="select select-bordered w-full max-w-xs"
+        aria-label="Choose a prompt template"
+      >
+        <option value="">Custom (start blank)</option>
+        <option value="summarizer">Summarizer</option>
+        <option value="code-assistant">Code assistant</option>
+        <option value="qa-bot">QA bot</option>
+        <option value="json-output">JSON output assistant</option>
+      </select>
       <label for="prompt" class="label mt-4">
         <span class="label-text font-medium">Your prompt</span>
         <span class="label-text-alt text-base-content/60" id="prompt-count">0 chars, 0 words</span>
@@ -132,6 +148,13 @@
 
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered areas</h3>
+          <div class="text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="over-engineered-explanation"></div>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 border border-base-300 mb-4">
+        <div class="card-body p-5">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
             <div class="flex gap-2">
@@ -166,6 +189,24 @@
     </section>
     </section>
   </div>
+
+  <dialog id="shortcuts-modal" class="modal">
+    <div class="modal-box">
+      <form method="dialog">
+        <button type="submit" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close">✕</button>
+      </form>
+      <h3 class="text-lg font-bold">Keyboard shortcuts</h3>
+      <ul class="mt-4 space-y-2 text-sm">
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Enter</kbd> — Submit analysis</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">H</kbd> — Open history</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">R</kbd> — Reload history</li>
+        <li><kbd class="kbd kbd-sm">Esc</kbd> — Close history</li>
+      </ul>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit">close</button>
+    </form>
+  </dialog>
 
   <script src="/static/app.js" defer></script>
 </body>
