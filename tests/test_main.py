@@ -204,6 +204,14 @@ def test_ui_includes_reload_history_keyboard_shortcut():
     assert "Ctrl+Shift+R" in r.text
 
 
+def test_app_js_includes_history_copy_button():
+    """app.js wires Copy button on history items to copy improved prompt."""
+    r = client.get("/static/app.js")
+    assert r.status_code == 200
+    assert "history-copy-btn" in r.text
+    assert "data-improved" in r.text
+
+
 def test_ui_includes_over_engineered_explanation_section():
     """UI includes over-engineered areas explanation section."""
     r = client.get("/")
