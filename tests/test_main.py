@@ -212,6 +212,13 @@ def test_ui_includes_over_engineered_explanation_section():
     assert "Over-engineered areas" in r.text
 
 
+def test_ui_includes_results_section_for_scroll_target():
+    """UI includes results section (id=results) for smooth scroll after analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert 'id="results"' in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

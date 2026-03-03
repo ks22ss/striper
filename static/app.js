@@ -512,6 +512,7 @@
       renderComponentsSection(data);
 
       resultsEl.classList.remove('hidden');
+      resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
       statusEl.className = 'text-sm text-base-content/70';
