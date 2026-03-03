@@ -54,6 +54,25 @@
     'json-output': 'Respond with valid JSON only. No additional text or markdown.',
   };
 
+  const KEYBOARD_SHORTCUTS = [
+    { keys: ['Ctrl', 'Enter'], desc: 'Submit analysis' },
+    { keys: ['Ctrl', 'Shift', 'H'], desc: 'Open history' },
+    { keys: ['Ctrl', 'Shift', 'R'], desc: 'Reload history' },
+    { keys: ['Esc'], desc: 'Close history' },
+  ];
+
+  function downloadAsJson(filename, data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function escapeHtml(s) {
     const div = document.createElement('div');
     div.textContent = s;
@@ -228,6 +247,14 @@
     shortcutsBtn.addEventListener('click', () => shortcutsModal.showModal());
   }
 
+  const shortcutsListEl = document.getElementById('shortcuts-list');
+  if (shortcutsListEl) {
+    shortcutsListEl.innerHTML = KEYBOARD_SHORTCUTS.map(
+      ({ keys, desc }) =>
+        `<li>${keys.map((k) => `<kbd class="kbd kbd-sm">${escapeHtml(k)}</kbd>`).join('+')} — ${escapeHtml(desc)}</li>`
+    ).join('');
+  }
+
   window.addEventListener('hashchange', route);
   route();
 
@@ -343,15 +370,7 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadAsJson('striper-history.json', data);
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -416,15 +435,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson('striper-analysis.json', lastAnalysisData);
   });
 
   function handleCtrlEnter(e) {

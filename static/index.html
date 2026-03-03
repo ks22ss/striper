@@ -196,11 +196,8 @@
         <button type="submit" class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close">✕</button>
       </form>
       <h3 class="text-lg font-bold">Keyboard shortcuts</h3>
-      <ul class="mt-4 space-y-2 text-sm">
-        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Enter</kbd> — Submit analysis</li>
-        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">H</kbd> — Open history</li>
-        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">R</kbd> — Reload history</li>
-        <li><kbd class="kbd kbd-sm">Esc</kbd> — Close history</li>
+      <ul id="shortcuts-list" class="mt-4 space-y-2 text-sm">
+        <!-- Populated from KEYBOARD_SHORTCUTS in app.js (single source of truth) -->
       </ul>
     </div>
     <form method="dialog" class="modal-backdrop">
