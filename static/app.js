@@ -29,6 +29,7 @@
   const promptInput = document.getElementById('prompt');
   const inputField = document.getElementById('input');
   const submitBtn = document.getElementById('submit-btn');
+  const retryBtn = document.getElementById('retry-btn');
   const statusEl = document.getElementById('status');
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
@@ -514,12 +515,17 @@
     }
   }
 
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => form.requestSubmit());
+  }
+
   async function handleAnalyzeSubmit(e) {
     e.preventDefault();
     const prompt = promptInput.value.trim();
     if (!prompt) return;
 
     submitBtn.disabled = true;
+    if (retryBtn) retryBtn.classList.add('hidden');
     statusEl.textContent = 'Analyzing...';
     statusEl.className = 'text-sm text-primary';
     resultsEl.classList.add('hidden');
@@ -560,6 +566,7 @@
     } catch (err) {
       statusEl.textContent = err.message || 'Error';
       statusEl.className = 'text-sm text-error';
+      if (retryBtn) retryBtn.classList.remove('hidden');
     } finally {
       submitBtn.disabled = false;
     }

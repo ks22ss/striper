@@ -97,6 +97,7 @@ def test_root_serves_ui():
         (["history-back", "Ctrl+Shift+R"]),
         (["over-engineered-explanation", "Over-engineered areas"]),
         (['id="results"']),
+        (["retry-btn", "Retry"]),
     ],
     ids=[
         "prompt_length",
@@ -116,6 +117,7 @@ def test_root_serves_ui():
         "reload_shortcut",
         "over_engineered_section",
         "results_scroll_target",
+        "retry_button",
     ],
 )
 def test_ui_includes_elements(assertions):
