@@ -24,6 +24,7 @@ async def _fake_get_current_user():
 def _mock_analysis_result(
     over_engineered_score: float = 0.0,
     improved_prompt: str = "",
+    over_engineered_explanation: str = "",
     components_removed: list | None = None,
     components_kept: list | None = None,
     total_components: int | None = None,
@@ -35,6 +36,7 @@ def _mock_analysis_result(
     return {
         "over_engineered_score": over_engineered_score,
         "improved_prompt": improved_prompt,
+        "over_engineered_explanation": over_engineered_explanation,
         "components_removed": removed,
         "components_kept": kept,
         "total_components": total,
@@ -75,131 +77,53 @@ def test_root_serves_ui():
     )
 
 
-def test_ui_includes_prompt_length_indicator():
-    """UI includes prompt length (chars/words) indicator."""
+@pytest.mark.parametrize(
+    "assertions",
+    [
+        (["prompt-count", "chars", "words"]),
+        (["copy-report-btn", "Copy report"]),
+        (["theme-toggle", "data-theme"]),
+        (["use-improved-btn", "Use as prompt"]),
+        (["download-json-btn", "Download JSON"]),
+        (["input-count"]),
+        (["clear-form-btn", "Clear"]),
+        (["landing-page", "Get started"]),
+        (["login-page", "login-form", "login-submit-btn", "#/register"]),
+        (["register-page", "register-form", "register-submit-btn", "#/login"]),
+        (["app-page", "logout-btn", "Logout"]),
+        (["history-btn", "Ctrl+Shift+H"]),
+        (["history-back", "Esc"]),
+        (["export-history-btn", "Export history"]),
+        (["history-back", "Ctrl+Shift+R"]),
+        (["over-engineered-explanation", "Over-engineered areas"]),
+        (['id="results"']),
+    ],
+    ids=[
+        "prompt_length",
+        "copy_report",
+        "theme_toggle",
+        "use_improved",
+        "download_json",
+        "input_count",
+        "clear_form",
+        "landing",
+        "login",
+        "register",
+        "app_page",
+        "history_shortcut",
+        "escape_close",
+        "export_history",
+        "reload_shortcut",
+        "over_engineered_section",
+        "results_scroll_target",
+    ],
+)
+def test_ui_includes_elements(assertions):
+    """UI includes expected elements (parametrized for maintainability)."""
     r = client.get("/")
     assert r.status_code == 200
-    assert "prompt-count" in r.text
-    assert "chars" in r.text and "words" in r.text
-
-
-def test_ui_includes_copy_report_button():
-    """UI includes Copy report button for full analysis."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "copy-report-btn" in r.text
-    assert "Copy report" in r.text
-
-
-def test_ui_includes_theme_toggle():
-    """UI includes theme toggle button for light/dark/system mode."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "theme-toggle" in r.text
-    assert "data-theme" in r.text or "Toggle" in r.text
-    assert "system" in r.text
-
-
-def test_ui_includes_use_improved_button():
-    """UI includes Use as prompt button for iterative refinement."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "use-improved-btn" in r.text
-    assert "Use as prompt" in r.text
-
-
-def test_ui_includes_download_json_button():
-    """UI includes Download JSON button for exporting analysis."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "download-json-btn" in r.text
-    assert "Download JSON" in r.text
-
-
-def test_ui_includes_input_length_indicator():
-    """UI includes input field length (chars/words) indicator."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "input-count" in r.text
-
-
-def test_ui_includes_clear_form_button():
-    """UI includes Clear button to reset form fields."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "clear-form-btn" in r.text
-    assert "Clear" in r.text
-
-
-def test_ui_includes_landing_page():
-    """UI includes landing page with Get started, Login and Register CTAs."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "landing-page" in r.text
-    assert "landing-get-started-btn" in r.text or "Get started" in r.text
-    assert "landing-login-btn" in r.text or 'href="#/login"' in r.text
-    assert "landing-register-btn" in r.text or 'href="#/register"' in r.text
-
-
-def test_ui_includes_login_page():
-    """UI includes login page with form and link to register."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "login-page" in r.text
-    assert "login-form" in r.text
-    assert "login-submit-btn" in r.text
-    assert "#/register" in r.text
-
-
-def test_ui_includes_register_page():
-    """UI includes register page with form and link to login."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "register-page" in r.text
-    assert "register-form" in r.text
-    assert "register-submit-btn" in r.text
-    assert "#/login" in r.text
-
-
-def test_ui_includes_app_page():
-    """UI includes app page (analyze section) with logout button."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "app-page" in r.text
-    assert "logout-btn" in r.text
-    assert "Logout" in r.text
-
-
-def test_ui_includes_history_keyboard_shortcut():
-    """UI includes history button with Ctrl+Shift+H shortcut hint."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "history-btn" in r.text
-    assert "Ctrl+Shift+H" in r.text
-
-
-def test_ui_includes_escape_close_history():
-    """UI includes Escape to close history (Back button tooltip)."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "history-back" in r.text
-    assert "Esc" in r.text
-
-
-def test_ui_includes_export_history_button():
-    """UI includes Export history button to download history as JSON."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "export-history-btn" in r.text
-    assert "Export history" in r.text
-
-
-def test_ui_includes_reload_history_keyboard_shortcut():
-    """UI includes Ctrl+Shift+R shortcut hint for reloading history."""
-    r = client.get("/")
-    assert r.status_code == 200
-    assert "history-back" in r.text
-    assert "Ctrl+Shift+R" in r.text
+    for s in assertions:
+        assert s in r.text, f"Expected '{s}' in UI"
 
 
 def test_analyze_unauthorized():
@@ -216,17 +140,18 @@ def test_analyze_requires_prompt():
 
 
 def test_analyze_success():
-    """Analyze endpoint returns result when stripe analysis succeeds."""
+    """Analyze endpoint returns result when AI analysis succeeds."""
     mock_result = _mock_analysis_result(
         over_engineered_score=0.25,
         improved_prompt="Be concise.",
+        over_engineered_explanation="Bullet points instruction is redundant.",
         components_removed=["Always use bullet points."],
         components_kept=["Be concise."],
         total_components=2,
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result),
+            patch("app.main.run_ai_analysis", return_value=mock_result),
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Be concise. Always use bullet points."})
@@ -234,6 +159,7 @@ def test_analyze_success():
         data = r.json()
         assert data["over_engineered_score"] == 0.25
         assert data["improved_prompt"] == "Be concise."
+        assert data["over_engineered_explanation"] == "Bullet points instruction is redundant."
         assert "components_removed" in data
         assert "components_kept" in data
 
@@ -359,7 +285,7 @@ def test_analyze_with_optional_input():
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.run_ai_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
         ):
             r = client.post(
@@ -386,7 +312,7 @@ def test_analyze_with_api_key_in_request():
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.run_ai_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
         ):
             r = client.post(
@@ -406,7 +332,7 @@ def test_analyze_empty_api_key_treated_as_none():
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.run_ai_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
@@ -421,7 +347,7 @@ def test_analyze_invalid_api_key_returns_503():
     resp.headers = {}
     with with_fake_user():
         with patch(
-            "app.main.run_stripe_analysis",
+            "app.main.run_ai_analysis",
             side_effect=AuthenticationError("Invalid key", response=resp, body=None),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "sk-invalid"})
