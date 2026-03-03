@@ -35,6 +35,10 @@ class AnalyzeResponse(BaseModel):
         description="Score 0-1: higher = more over-engineered (more redundant components)",
     )
     improved_prompt: str = Field(..., description="Optimized prompt with redundant parts removed")
+    over_engineered_explanation: str = Field(
+        default="",
+        description="AI explanation of what is over-engineered and why",
+    )
     components_removed: list[str] = Field(
         default_factory=list,
         description="Components deemed redundant and removed",
