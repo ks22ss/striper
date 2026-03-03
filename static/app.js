@@ -57,6 +57,34 @@
     return chars + ' chars, ' + words + ' words';
   }
 
+  const SCORE_OPTIMAL = 0.33;
+  const SCORE_REDUNDANT = 0.66;
+
+  function getScoreDisplayInfo(score) {
+    const pct = Math.round(score * 100);
+    const cssClass =
+      score < SCORE_OPTIMAL ? 'progress-success' :
+      score < SCORE_REDUNDANT ? 'progress-warning' :
+      'progress-error';
+    const label =
+      score < SCORE_OPTIMAL ? 'prompt is fairly optimal' :
+      score < SCORE_REDUNDANT ? 'some redundancy detected' :
+      'prompt is over-engineered';
+    return { pct, cssClass, label };
+  }
+
+  function downloadAsJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function clearForm() {
     promptInput.value = '';
     inputField.value = '';
@@ -269,6 +297,15 @@
 
   logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
+  function renderHistoryItem(item) {
+    const preview = escapeHtml(item.prompt.slice(0, 100)) + (item.prompt.length > 100 ? '…' : '');
+    const score = Math.round(item.over_engineered_score * 100);
+    return `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
+      <p class="font-mono text-sm mb-2">${preview}</p>
+      <p class="text-xs text-base-content/60">Score: ${score}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+    </li>`;
+  }
+
   async function loadHistory() {
     analyzeSection.classList.add('hidden');
     historySection.classList.remove('hidden');
@@ -279,12 +316,7 @@
       if (!res.ok) throw new Error(data.detail || 'Failed to load history');
       historyListEl.innerHTML = data.items.length === 0
         ? '<li class="text-base-content/70">No history yet.</li>'
-        : data.items.map(item =>
-            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
-              <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-              <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
-            </li>`
-          ).join('');
+        : data.items.map(renderHistoryItem).join('');
       document.querySelectorAll('.history-item').forEach(el => {
         el.addEventListener('click', () => {
           const prompt = el.getAttribute('data-prompt');
@@ -318,15 +350,7 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadAsJson(data, 'striper-history.json');
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -391,15 +415,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson(lastAnalysisData, 'striper-analysis.json');
   });
 
   function handleCtrlEnter(e) {
@@ -441,18 +457,10 @@
 
   function renderScoreSection(data) {
     const score = data.over_engineered_score;
-    const pct = Math.round(score * 100);
+    const { pct, cssClass, label } = getScoreDisplayInfo(score);
     scoreProgress.value = pct;
-    scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
-      'progress-error'
-    );
-    scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
-      'prompt is over-engineered'
-    );
+    scoreProgress.className = 'progress w-full h-2 ' + cssClass;
+    scoreLabel.textContent = pct + '% – ' + label;
   }
 
   function renderComponentsSection(data) {
