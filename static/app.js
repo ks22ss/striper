@@ -33,6 +33,7 @@
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
   const scoreLabel = document.getElementById('score-label');
+  const overEngineeredExplanationEl = document.getElementById('over-engineered-explanation');
   const improvedPromptEl = document.getElementById('improved-prompt');
   const componentsEl = document.getElementById('components');
   const copyImprovedBtn = document.getElementById('copy-improved-btn');
@@ -42,6 +43,35 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptTemplatesSelect = document.getElementById('prompt-templates');
+  const shortcutsBtn = document.getElementById('shortcuts-btn');
+  const shortcutsModal = document.getElementById('shortcuts-modal');
+
+  const PROMPT_TEMPLATES = {
+    summarizer: 'Summarize the document. Keep the main points. Use bullet points.',
+    'code-assistant': 'You are a helpful coding assistant. Explain code clearly. Prefer concise answers.',
+    'qa-bot': "Answer the user's question accurately. If unsure, say so. Be concise.",
+    'json-output': 'Respond with valid JSON only. No additional text or markdown.',
+  };
+
+  const KEYBOARD_SHORTCUTS = [
+    { keys: ['Ctrl', 'Enter'], desc: 'Submit analysis' },
+    { keys: ['Ctrl', 'Shift', 'H'], desc: 'Open history' },
+    { keys: ['Ctrl', 'Shift', 'R'], desc: 'Reload history' },
+    { keys: ['Esc'], desc: 'Close history' },
+  ];
+
+  function downloadAsJson(filename, data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -60,6 +90,7 @@
     promptInput.value = '';
     inputField.value = '';
     apiKeyInput.value = '';
+    if (promptTemplatesSelect) promptTemplatesSelect.value = '';
     resultsEl.classList.add('hidden');
     statusEl.textContent = '';
     statusEl.className = 'text-sm text-base-content/70';
@@ -92,6 +123,16 @@
   inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
   updatePromptCount();
   updateInputCount();
+
+  if (promptTemplatesSelect) {
+    promptTemplatesSelect.addEventListener('change', () => {
+      const key = promptTemplatesSelect.value;
+      const text = PROMPT_TEMPLATES[key] || '';
+      promptInput.value = text;
+      updatePromptCount();
+      promptInput.focus();
+    });
+  }
 
   function getAuthHeaders() {
     const token = localStorage.getItem(AUTH_KEY);
@@ -201,6 +242,18 @@
     const next = THEMES[(idx + 1) % THEMES.length];
     applyTheme(next);
   });
+
+  if (shortcutsBtn && shortcutsModal) {
+    shortcutsBtn.addEventListener('click', () => shortcutsModal.showModal());
+  }
+
+  const shortcutsListEl = document.getElementById('shortcuts-list');
+  if (shortcutsListEl) {
+    shortcutsListEl.innerHTML = KEYBOARD_SHORTCUTS.map(
+      ({ keys, desc }) =>
+        `<li>${keys.map((k) => `<kbd class="kbd kbd-sm">${escapeHtml(k)}</kbd>`).join('+')} — ${escapeHtml(desc)}</li>`
+    ).join('');
+  }
 
   window.addEventListener('hashchange', route);
   route();
@@ -317,15 +370,7 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadAsJson('striper-history.json', data);
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -362,11 +407,15 @@
   function buildReportText(data) {
     if (!data) return '';
     const score = Math.round((data.over_engineered_score || 0) * 100);
+    const explanation = data.over_engineered_explanation || '';
     const improved = data.improved_prompt || '(unchanged)';
     const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
     const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
+    const parts = [
       'Over-engineered score: ' + score + '%',
+      '',
+      'Over-engineered areas:',
+      explanation || '  (none)',
       '',
       'Improved prompt:',
       improved,
@@ -376,7 +425,8 @@
       '',
       'Components removed:',
       removed || '  (none)',
-    ].join('\n');
+    ];
+    return parts.join('\n');
   }
 
   copyReportBtn.addEventListener('click', () =>
@@ -385,15 +435,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson('striper-analysis.json', lastAnalysisData);
   });
 
   function handleCtrlEnter(e) {
@@ -453,12 +495,18 @@
     const items = [];
     (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
     (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
+    const componentsCard = componentsEl.closest('.card');
+    if (items.length === 0 && componentsCard) {
+      componentsCard.classList.add('hidden');
+    } else if (componentsCard) {
+      componentsCard.classList.remove('hidden');
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -494,6 +542,7 @@
       }
 
       renderScoreSection(data);
+      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
       improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
       lastAnalysisData = data;
       renderComponentsSection(data);
