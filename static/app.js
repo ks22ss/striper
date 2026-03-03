@@ -473,6 +473,20 @@
     }
   }
 
+  /**
+   * Render full analysis result to DOM. SRP: single place for result display.
+   * Updates score, explanation, improved prompt, components; shows results and scrolls into view.
+   */
+  function renderAnalysisResult(data) {
+    renderScoreSection(data);
+    overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
+    improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
+    lastAnalysisData = data;
+    renderComponentsSection(data);
+    resultsEl.classList.remove('hidden');
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   async function handleAnalyzeSubmit(e) {
     e.preventDefault();
     const prompt = promptInput.value.trim();
@@ -505,13 +519,7 @@
         throw new Error(data.detail || 'Analysis failed');
       }
 
-      renderScoreSection(data);
-      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
-      improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
-      lastAnalysisData = data;
-      renderComponentsSection(data);
-
-      resultsEl.classList.remove('hidden');
+      renderAnalysisResult(data);
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
       statusEl.className = 'text-sm text-base-content/70';
