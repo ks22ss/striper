@@ -33,6 +33,7 @@
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
   const scoreLabel = document.getElementById('score-label');
+  const overEngineeredExplanationEl = document.getElementById('over-engineered-explanation');
   const improvedPromptEl = document.getElementById('improved-prompt');
   const componentsEl = document.getElementById('components');
   const copyImprovedBtn = document.getElementById('copy-improved-btn');
@@ -42,6 +43,8 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+
+  const MIN_PROMPT_LENGTH = 20;
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -362,11 +365,15 @@
   function buildReportText(data) {
     if (!data) return '';
     const score = Math.round((data.over_engineered_score || 0) * 100);
+    const explanation = data.over_engineered_explanation || '';
     const improved = data.improved_prompt || '(unchanged)';
     const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
     const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
+    const parts = [
       'Over-engineered score: ' + score + '%',
+      '',
+      'Over-engineered areas:',
+      explanation || '  (none)',
       '',
       'Improved prompt:',
       improved,
@@ -376,7 +383,8 @@
       '',
       'Components removed:',
       removed || '  (none)',
-    ].join('\n');
+    ];
+    return parts.join('\n');
   }
 
   copyReportBtn.addEventListener('click', () =>
@@ -453,18 +461,29 @@
     const items = [];
     (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
     (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
+    const componentsCard = componentsEl.closest('.card');
+    if (items.length === 0 && componentsCard) {
+      componentsCard.classList.add('hidden');
+    } else if (componentsCard) {
+      componentsCard.classList.remove('hidden');
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
   }
 
   async function handleAnalyzeSubmit(e) {
     e.preventDefault();
     const prompt = promptInput.value.trim();
     if (!prompt) return;
+    if (prompt.length < MIN_PROMPT_LENGTH) {
+      statusEl.textContent = `Prompt too short (min ${MIN_PROMPT_LENGTH} chars). Add more detail for meaningful analysis.`;
+      statusEl.className = 'text-sm text-warning';
+      return;
+    }
 
     submitBtn.disabled = true;
     statusEl.textContent = 'Analyzing...';
@@ -494,6 +513,7 @@
       }
 
       renderScoreSection(data);
+      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
       improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
       lastAnalysisData = data;
       renderComponentsSection(data);
