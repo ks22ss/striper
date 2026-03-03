@@ -40,6 +40,32 @@ def _parse_json_fallback(text: str) -> dict:
     return {}
 
 
+def _parse_ai_response(data: dict, original_prompt: str) -> dict:
+    """
+    Parse raw AI response into normalized analysis result.
+    SRP: single place for extracting simplified_prompt, explanation, score.
+    """
+    simplified = (data.get("simplified_prompt") or "").strip()
+    explanation = (data.get("over_engineered_explanation") or "").strip()
+    score_raw = data.get("over_engineered_score")
+    try:
+        score = max(0.0, min(1.0, float(score_raw)))
+    except (TypeError, ValueError):
+        orig_len = len(original_prompt)
+        new_len = len(simplified) if simplified else orig_len
+        score = 1.0 - (new_len / orig_len) if orig_len > 0 else 0.0
+        score = max(0.0, min(1.0, score))
+    improved = simplified if simplified else original_prompt
+    return {
+        "over_engineered_score": round(score, 2),
+        "improved_prompt": improved,
+        "over_engineered_explanation": explanation,
+        "components_removed": [],
+        "components_kept": [],
+        "total_components": 0,
+    }
+
+
 def run_ai_analysis(
     prompt: str,
     user_input: str | None = None,
@@ -79,25 +105,4 @@ def run_ai_analysis(
         )
         data = _parse_json_fallback(raw) if raw else {}
 
-    simplified = (data.get("simplified_prompt") or "").strip()
-    explanation = (data.get("over_engineered_explanation") or "").strip()
-    score_raw = data.get("over_engineered_score")
-    try:
-        score = max(0.0, min(1.0, float(score_raw)))
-    except (TypeError, ValueError):
-        # Derive score from length reduction if AI didn't provide valid score
-        orig_len = len(prompt)
-        new_len = len(simplified) if simplified else orig_len
-        score = 1.0 - (new_len / orig_len) if orig_len > 0 else 0.0
-        score = max(0.0, min(1.0, score))
-
-    improved = simplified if simplified else prompt
-
-    return {
-        "over_engineered_score": round(score, 2),
-        "improved_prompt": improved,
-        "over_engineered_explanation": explanation,
-        "components_removed": [],
-        "components_kept": [],
-        "total_components": 0,
-    }
+    return _parse_ai_response(data, prompt)
