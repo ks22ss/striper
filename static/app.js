@@ -297,6 +297,15 @@
 
   logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
+  function renderHistoryItem(item) {
+    const preview = escapeHtml(item.prompt.slice(0, 100)) + (item.prompt.length > 100 ? '…' : '');
+    const score = Math.round(item.over_engineered_score * 100);
+    return `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
+      <p class="font-mono text-sm mb-2">${preview}</p>
+      <p class="text-xs text-base-content/60">Score: ${score}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+    </li>`;
+  }
+
   async function loadHistory() {
     analyzeSection.classList.add('hidden');
     historySection.classList.remove('hidden');
@@ -307,12 +316,7 @@
       if (!res.ok) throw new Error(data.detail || 'Failed to load history');
       historyListEl.innerHTML = data.items.length === 0
         ? '<li class="text-base-content/70">No history yet.</li>'
-        : data.items.map(item =>
-            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
-              <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-              <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
-            </li>`
-          ).join('');
+        : data.items.map(renderHistoryItem).join('');
       document.querySelectorAll('.history-item').forEach(el => {
         el.addEventListener('click', () => {
           const prompt = el.getAttribute('data-prompt');
@@ -425,24 +429,57 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
-  document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
-      e.preventDefault();
-      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
-        historyBtn.click();
+  /**
+   * Keyboard shortcuts config. SRP: single place to add/modify shortcuts.
+   * Each entry: { key, ctrlShift?, escape?, action }.
+   */
+  function setupKeyboardShortcuts() {
+    const shortcuts = [
+      {
+        key: 'H',
+        ctrlShift: true,
+        action: () => {
+          if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
+            historyBtn.click();
+          }
+        },
+      },
+      {
+        key: 'R',
+        ctrlShift: true,
+        action: () => {
+          if (!historySection.classList.contains('hidden')) {
+            loadHistory();
+          }
+        },
+      },
+      {
+        key: 'Escape',
+        escape: true,
+        action: () => {
+          if (!historySection.classList.contains('hidden')) {
+            historySection.classList.add('hidden');
+            analyzeSection.classList.remove('hidden');
+          }
+        },
+      },
+    ];
+    document.addEventListener('keydown', (e) => {
+      for (const s of shortcuts) {
+        if (s.escape) {
+          if (e.key === 'Escape' && s.action) {
+            s.action();
+            return;
+          }
+        } else if (s.ctrlShift && (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === s.key) {
+          e.preventDefault();
+          s.action();
+          return;
+        }
       }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
-      e.preventDefault();
-      if (!historySection.classList.contains('hidden')) {
-        loadHistory();
-      }
-    }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
-    }
-  });
+    });
+  }
+  setupKeyboardShortcuts();
 
   function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
     const body = { prompt };
