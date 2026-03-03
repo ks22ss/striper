@@ -44,6 +44,8 @@
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
 
+  const MIN_PROMPT_LENGTH = 20;
+
   function escapeHtml(s) {
     const div = document.createElement('div');
     div.textContent = s;
@@ -477,6 +479,11 @@
     e.preventDefault();
     const prompt = promptInput.value.trim();
     if (!prompt) return;
+    if (prompt.length < MIN_PROMPT_LENGTH) {
+      statusEl.textContent = `Prompt too short (min ${MIN_PROMPT_LENGTH} chars). Add more detail for meaningful analysis.`;
+      statusEl.className = 'text-sm text-warning';
+      return;
+    }
 
     submitBtn.disabled = true;
     statusEl.textContent = 'Analyzing...';

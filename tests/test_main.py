@@ -133,6 +133,14 @@ def test_ui_includes_clear_form_button():
     assert "Clear" in r.text
 
 
+def test_ui_enforces_minimum_prompt_length():
+    """Frontend validates minimum prompt length before submit."""
+    r = client.get("/static/app.js")
+    assert r.status_code == 200
+    assert "MIN_PROMPT_LENGTH" in r.text
+    assert "Prompt too short" in r.text
+
+
 def test_ui_includes_landing_page():
     """UI includes landing page with Get started, Login and Register CTAs."""
     r = client.get("/")
