@@ -72,6 +72,7 @@
       </div>
       <div id="auth-section" class="flex items-center gap-2">
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark/system theme" aria-label="Toggle theme">🌙</button>
+        <button type="button" class="btn btn-ghost btn-sm btn-square" id="shortcuts-help-btn" title="Keyboard shortcuts (Ctrl+Shift+?)" aria-label="Show shortcuts">?</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
         <button type="button" class="btn btn-ghost btn-sm" id="logout-btn">Logout</button>
@@ -173,6 +174,21 @@
     </section>
     </section>
   </div>
+
+  <dialog id="shortcuts-modal" class="modal" aria-labelledby="shortcuts-modal-title">
+    <div class="modal-box">
+      <h2 id="shortcuts-modal-title" class="text-lg font-semibold mb-4">Keyboard shortcuts</h2>
+      <ul id="shortcuts-list" class="space-y-2 text-sm"></ul>
+      <div class="modal-action">
+        <form method="dialog">
+          <button type="submit" class="btn btn-primary btn-sm">Close</button>
+        </form>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit">close</button>
+    </form>
+  </dialog>
 
   <script src="/static/app.js" defer></script>
 </body>

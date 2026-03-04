@@ -43,6 +43,17 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const shortcutsModal = document.getElementById('shortcuts-modal');
+  const shortcutsListEl = document.getElementById('shortcuts-list');
+  const shortcutsHelpBtn = document.getElementById('shortcuts-help-btn');
+
+  const KEYBOARD_SHORTCUTS = [
+    { keys: 'Ctrl+Enter', description: 'Submit analyze form' },
+    { keys: 'Ctrl+Shift+H', description: 'Open history' },
+    { keys: 'Ctrl+Shift+R', description: 'Reload history (when viewing history)' },
+    { keys: 'Ctrl+Shift+?', description: 'Show keyboard shortcuts' },
+    { keys: 'Escape', description: 'Close history or shortcuts modal' },
+  ];
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -269,6 +280,25 @@
 
   logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
+  function openShortcutsModal() {
+    if (!shortcutsModal || !shortcutsListEl) return;
+    shortcutsListEl.innerHTML = KEYBOARD_SHORTCUTS.map(
+      (s) =>
+        `<li class="flex justify-between gap-4"><kbd class="kbd kbd-sm font-mono">${escapeHtml(s.keys)}</kbd><span>${escapeHtml(s.description)}</span></li>`
+    ).join('');
+    shortcutsModal.showModal();
+  }
+
+  function closeShortcutsModal() {
+    if (shortcutsModal && typeof shortcutsModal.close === 'function') {
+      shortcutsModal.close();
+    }
+  }
+
+  if (shortcutsHelpBtn) {
+    shortcutsHelpBtn.addEventListener('click', openShortcutsModal);
+  }
+
   async function loadHistory() {
     analyzeSection.classList.add('hidden');
     historySection.classList.remove('hidden');
@@ -414,6 +444,12 @@
   inputField.addEventListener('keydown', handleCtrlEnter);
 
   document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '?') {
+      e.preventDefault();
+      if (!appPage.classList.contains('hidden')) {
+        openShortcutsModal();
+      }
+    }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
       e.preventDefault();
       if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
@@ -426,9 +462,13 @@
         loadHistory();
       }
     }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
+    if (e.key === 'Escape') {
+      if (shortcutsModal && shortcutsModal.open) {
+        closeShortcutsModal();
+      } else if (!historySection.classList.contains('hidden')) {
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+      }
     }
   });
 
