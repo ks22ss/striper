@@ -212,6 +212,16 @@ def test_ui_includes_over_engineered_explanation_section():
     assert "Over-engineered areas" in r.text
 
 
+def test_ui_includes_prompt_templates_select():
+    """UI includes prompt templates dropdown for quick-start prompts."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-templates" in r.text
+    assert "Customer support" in r.text
+    assert "Code review" in r.text
+    assert "Summarization" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

@@ -43,6 +43,18 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptTemplatesSelect = document.getElementById('prompt-templates');
+
+  const PROMPT_TEMPLATES = {
+    'customer-support':
+      'You are a helpful customer support agent. Be empathetic and professional. Address the user\'s concern clearly. Provide step-by-step solutions when needed.',
+    'code-review':
+      'You are a code reviewer. Review the following code for quality, security, and best practices. Provide clear, constructive feedback.',
+    summarization:
+      'Summarize the following text concisely. Preserve key facts and main ideas. Use clear, neutral language.',
+    translation:
+      'Translate the following text. Keep the tone and style appropriate for the target language. Preserve technical terms when appropriate.',
+  };
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -93,6 +105,16 @@
   inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
   updatePromptCount();
   updateInputCount();
+
+  if (promptTemplatesSelect) {
+    promptTemplatesSelect.addEventListener('change', () => {
+      const key = promptTemplatesSelect.value;
+      if (key && PROMPT_TEMPLATES[key]) {
+        promptInput.value = PROMPT_TEMPLATES[key];
+        updatePromptCount();
+      }
+    });
+  }
 
   function getAuthHeaders() {
     const token = localStorage.getItem(AUTH_KEY);

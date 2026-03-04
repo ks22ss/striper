@@ -96,6 +96,16 @@
         <span class="label-text font-medium">Your prompt</span>
         <span class="label-text-alt text-base-content/60" id="prompt-count">0 chars, 0 words</span>
       </label>
+      <div class="flex gap-2 items-center mb-2">
+        <label for="prompt-templates" class="text-sm text-base-content/70 shrink-0">Template:</label>
+        <select id="prompt-templates" class="select select-bordered select-sm max-w-xs" title="Load a prompt template">
+          <option value="">Custom (start from scratch)</option>
+          <option value="customer-support">Customer support</option>
+          <option value="code-review">Code review</option>
+          <option value="summarization">Summarization</option>
+          <option value="translation">Translation</option>
+        </select>
+      </div>
       <textarea
         id="prompt"
         name="prompt"
