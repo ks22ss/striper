@@ -9,6 +9,8 @@
   const USER_KEY = 'striper_user';
   const THEME_KEY = 'striper_theme';
 
+  const SCORE_THRESHOLDS = { optimal: 0.33, warning: 0.66 };
+
   const landingPage = document.getElementById('landing-page');
   const loginPage = document.getElementById('login-page');
   const registerPage = document.getElementById('register-page');
@@ -43,6 +45,18 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+
+  function downloadAsJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -318,15 +332,7 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadAsJson(data, 'striper-history.json');
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -391,15 +397,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson(lastAnalysisData, 'striper-analysis.json');
   });
 
   function handleCtrlEnter(e) {
@@ -442,17 +440,23 @@
   function renderScoreSection(data) {
     const score = data.over_engineered_score;
     const pct = Math.round(score * 100);
+    const { optimal, warning } = SCORE_THRESHOLDS;
     scoreProgress.value = pct;
-    scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
-      'progress-error'
-    );
-    scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
-      'prompt is over-engineered'
-    );
+    scoreProgress.className =
+      'progress w-full h-2 ' +
+      (score < optimal
+        ? 'progress-success'
+        : score < warning
+          ? 'progress-warning'
+          : 'progress-error');
+    scoreLabel.textContent =
+      pct +
+      '% – ' +
+      (score < optimal
+        ? 'prompt is fairly optimal'
+        : score < warning
+          ? 'some redundancy detected'
+          : 'prompt is over-engineered');
   }
 
   function renderComponentsSection(data) {
