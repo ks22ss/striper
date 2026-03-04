@@ -33,6 +33,7 @@
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
   const scoreLabel = document.getElementById('score-label');
+  const overEngineeredExplanationEl = document.getElementById('over-engineered-explanation');
   const improvedPromptEl = document.getElementById('improved-prompt');
   const componentsEl = document.getElementById('components');
   const copyImprovedBtn = document.getElementById('copy-improved-btn');
@@ -42,6 +43,18 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptTemplatesSelect = document.getElementById('prompt-templates');
+
+  const PROMPT_TEMPLATES = {
+    'customer-support':
+      'You are a helpful customer support agent. Be empathetic and professional. Address the user\'s concern clearly. Provide step-by-step solutions when needed.',
+    'code-review':
+      'You are a code reviewer. Review the following code for quality, security, and best practices. Provide clear, constructive feedback.',
+    summarization:
+      'Summarize the following text concisely. Preserve key facts and main ideas. Use clear, neutral language.',
+    translation:
+      'Translate the following text. Keep the tone and style appropriate for the target language. Preserve technical terms when appropriate.',
+  };
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -92,6 +105,16 @@
   inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
   updatePromptCount();
   updateInputCount();
+
+  if (promptTemplatesSelect) {
+    promptTemplatesSelect.addEventListener('change', () => {
+      const key = promptTemplatesSelect.value;
+      if (key && PROMPT_TEMPLATES[key]) {
+        promptInput.value = PROMPT_TEMPLATES[key];
+        updatePromptCount();
+      }
+    });
+  }
 
   function getAuthHeaders() {
     const token = localStorage.getItem(AUTH_KEY);
@@ -362,11 +385,15 @@
   function buildReportText(data) {
     if (!data) return '';
     const score = Math.round((data.over_engineered_score || 0) * 100);
+    const explanation = data.over_engineered_explanation || '';
     const improved = data.improved_prompt || '(unchanged)';
     const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
     const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
+    const parts = [
       'Over-engineered score: ' + score + '%',
+      '',
+      'Over-engineered areas:',
+      explanation || '  (none)',
       '',
       'Improved prompt:',
       improved,
@@ -376,7 +403,8 @@
       '',
       'Components removed:',
       removed || '  (none)',
-    ].join('\n');
+    ];
+    return parts.join('\n');
   }
 
   copyReportBtn.addEventListener('click', () =>
@@ -453,12 +481,18 @@
     const items = [];
     (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
     (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
+    const componentsCard = componentsEl.closest('.card');
+    if (items.length === 0 && componentsCard) {
+      componentsCard.classList.add('hidden');
+    } else if (componentsCard) {
+      componentsCard.classList.remove('hidden');
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -494,6 +528,7 @@
       }
 
       renderScoreSection(data);
+      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
       improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
       lastAnalysisData = data;
       renderComponentsSection(data);
