@@ -8,6 +8,7 @@
   const AUTH_KEY = 'striper_token';
   const USER_KEY = 'striper_user';
   const THEME_KEY = 'striper_theme';
+  const DRAFT_KEY = 'striper_draft';
 
   const landingPage = document.getElementById('landing-page');
   const loginPage = document.getElementById('login-page');
@@ -33,6 +34,7 @@
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
   const scoreLabel = document.getElementById('score-label');
+  const overEngineeredExplanationEl = document.getElementById('over-engineered-explanation');
   const improvedPromptEl = document.getElementById('improved-prompt');
   const componentsEl = document.getElementById('components');
   const copyImprovedBtn = document.getElementById('copy-improved-btn');
@@ -56,6 +58,43 @@
     return chars + ' chars, ' + words + ' words';
   }
 
+  function saveDraft() {
+    const prompt = promptInput.value.trim();
+    const input = inputField.value.trim();
+    if (!prompt && !input) {
+      localStorage.removeItem(DRAFT_KEY);
+      return;
+    }
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ prompt, input }));
+    } catch (_) {}
+  }
+
+  function loadDraft() {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return data && (data.prompt || data.input) ? data : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+  }
+
+  function restoreDraft() {
+    if (promptInput.value.trim()) return;
+    const draft = loadDraft();
+    if (!draft) return;
+    if (draft.prompt) promptInput.value = draft.prompt;
+    if (draft.input) inputField.value = draft.input;
+    updatePromptCount();
+    updateInputCount();
+  }
+
   function clearForm() {
     promptInput.value = '';
     inputField.value = '';
@@ -63,6 +102,7 @@
     resultsEl.classList.add('hidden');
     statusEl.textContent = '';
     statusEl.className = 'text-sm text-base-content/70';
+    clearDraft();
     updatePromptCount();
     updateInputCount();
     promptInput.focus();
@@ -86,10 +126,25 @@
     updateCharWordCount(inputField, inputCountEl, 'Sample text the prompt will process');
   }
 
-  promptInput.addEventListener('input', updatePromptCount);
-  promptInput.addEventListener('paste', () => setTimeout(updatePromptCount, 0));
-  inputField.addEventListener('input', updateInputCount);
-  inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
+  let draftSaveTimeout = null;
+  function scheduleDraftSave() {
+    if (draftSaveTimeout) clearTimeout(draftSaveTimeout);
+    draftSaveTimeout = setTimeout(() => {
+      draftSaveTimeout = null;
+      saveDraft();
+    }, 500);
+  }
+
+  promptInput.addEventListener('input', () => {
+    updatePromptCount();
+    scheduleDraftSave();
+  });
+  promptInput.addEventListener('paste', () => setTimeout(() => { updatePromptCount(); scheduleDraftSave(); }, 0));
+  inputField.addEventListener('input', () => {
+    updateInputCount();
+    scheduleDraftSave();
+  });
+  inputField.addEventListener('paste', () => setTimeout(() => { updateInputCount(); scheduleDraftSave(); }, 0));
   updatePromptCount();
   updateInputCount();
 
@@ -120,6 +175,7 @@
     hideAllPages();
     const page = document.getElementById(pageId);
     if (page) page.classList.remove('hidden');
+    if (pageId === 'app-page') restoreDraft();
   }
 
   function setLoggedIn(user) {
@@ -362,11 +418,15 @@
   function buildReportText(data) {
     if (!data) return '';
     const score = Math.round((data.over_engineered_score || 0) * 100);
+    const explanation = data.over_engineered_explanation || '';
     const improved = data.improved_prompt || '(unchanged)';
     const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
     const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
+    const parts = [
       'Over-engineered score: ' + score + '%',
+      '',
+      'Over-engineered areas:',
+      explanation || '  (none)',
       '',
       'Improved prompt:',
       improved,
@@ -376,7 +436,8 @@
       '',
       'Components removed:',
       removed || '  (none)',
-    ].join('\n');
+    ];
+    return parts.join('\n');
   }
 
   copyReportBtn.addEventListener('click', () =>
@@ -453,12 +514,18 @@
     const items = [];
     (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
     (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
+    const componentsCard = componentsEl.closest('.card');
+    if (items.length === 0 && componentsCard) {
+      componentsCard.classList.add('hidden');
+    } else if (componentsCard) {
+      componentsCard.classList.remove('hidden');
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -494,6 +561,7 @@
       }
 
       renderScoreSection(data);
+      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
       improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
       lastAnalysisData = data;
       renderComponentsSection(data);
