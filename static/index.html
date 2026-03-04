@@ -71,6 +71,7 @@
         <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
       </div>
       <div id="auth-section" class="flex items-center gap-2">
+        <button type="button" class="btn btn-ghost btn-sm btn-square" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show keyboard shortcuts">?</button>
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark/system theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
@@ -132,6 +133,13 @@
 
       <div class="card bg-base-200 border border-base-300 mb-4">
         <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered areas</h3>
+          <div class="text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="over-engineered-explanation"></div>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 border border-base-300 mb-4">
+        <div class="card-body p-5">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60">Improved prompt</h3>
             <div class="flex gap-2">
@@ -166,6 +174,26 @@
     </section>
     </section>
   </div>
+
+  <dialog id="shortcuts-modal" class="modal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg">Keyboard shortcuts</h3>
+      <ul class="mt-3 space-y-2 text-sm">
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Enter</kbd> – Submit analysis</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">H</kbd> – Open history</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd>+<kbd class="kbd kbd-sm">Shift</kbd>+<kbd class="kbd kbd-sm">R</kbd> – Reload history</li>
+        <li><kbd class="kbd kbd-sm">Esc</kbd> – Close history panel</li>
+      </ul>
+      <div class="modal-action">
+        <form method="dialog">
+          <button type="submit" class="btn btn-primary btn-sm">Close</button>
+        </form>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit">close</button>
+    </form>
+  </dialog>
 
   <script src="/static/app.js" defer></script>
 </body>

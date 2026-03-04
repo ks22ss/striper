@@ -4,6 +4,7 @@ Supports both OpenAI and OpenRouter. Set OPENROUTER_API_KEY to use OpenRouter;
 otherwise OPENAI_API_KEY is used. See https://openrouter.ai/docs/guides/community/openai-sdk
 """
 
+import json
 import os
 
 from openai import OpenAI
@@ -55,6 +56,32 @@ def call_model(
         max_tokens=500,
     )
     return response.choices[0].message.content or ""
+
+
+def call_model_json(
+    prompt: str,
+    model: str = "stepfun/step-3.5-flash:free",
+    api_key: str | None = None,
+    max_tokens: int = 1024,
+) -> dict:
+    """Call the model with a prompt and return parsed JSON. Expects valid JSON in response."""
+    client = _resolve_client(api_key)
+    response = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a helpful assistant. Respond only with valid JSON, no other text."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=max_tokens,
+        response_format={"type": "json_object"},
+    )
+    content = response.choices[0].message.content or "{}"
+    return json.loads(content)
 
 
 def get_embedding(
