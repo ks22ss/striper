@@ -279,12 +279,7 @@
       if (!res.ok) throw new Error(data.detail || 'Failed to load history');
       historyListEl.innerHTML = data.items.length === 0
         ? '<li class="text-base-content/70">No history yet.</li>'
-        : data.items.map(item =>
-            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
-              <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-              <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
-            </li>`
-          ).join('');
+        : data.items.map(renderHistoryItem).join('');
       document.querySelectorAll('.history-item').forEach(el => {
         el.addEventListener('click', () => {
           const prompt = el.getAttribute('data-prompt');
@@ -308,6 +303,15 @@
     analyzeSection.classList.remove('hidden');
   });
 
+  function renderHistoryItem(item) {
+    const preview = item.prompt.slice(0, 100) + (item.prompt.length > 100 ? '…' : '');
+    const score = Math.round(item.over_engineered_score * 100);
+    return `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
+      <p class="font-mono text-sm mb-2">${escapeHtml(preview)}</p>
+      <p class="text-xs text-base-content/60">Score: ${score}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+    </li>`;
+  }
+
   const exportHistoryBtn = document.getElementById('export-history-btn');
   const exportHistoryError = document.getElementById('export-history-error');
   if (exportHistoryBtn && exportHistoryError) {
@@ -318,15 +322,7 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadAsJson(data, 'striper-history.json');
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -389,17 +385,20 @@
     copyWithFeedback(buildReportText(lastAnalysisData), copyReportBtn)
   );
 
-  downloadJsonBtn.addEventListener('click', () => {
-    if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
+  function downloadAsJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'striper-analysis.json';
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  downloadJsonBtn.addEventListener('click', () => {
+    if (lastAnalysisData) downloadAsJson(lastAnalysisData, 'striper-analysis.json');
   });
 
   function handleCtrlEnter(e) {
@@ -413,22 +412,48 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
+  const KEYBOARD_SHORTCUTS = [
+    {
+      key: 'H',
+      ctrl: true,
+      shift: true,
+      handler: () => {
+        if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
+          historyBtn.click();
+        }
+      },
+    },
+    {
+      key: 'R',
+      ctrl: true,
+      shift: true,
+      handler: () => {
+        if (!historySection.classList.contains('hidden')) {
+          loadHistory();
+        }
+      },
+    },
+    {
+      key: 'Escape',
+      handler: () => {
+        if (!historySection.classList.contains('hidden')) {
+          historySection.classList.add('hidden');
+          analyzeSection.classList.remove('hidden');
+        }
+      },
+    },
+  ];
+
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
-      e.preventDefault();
-      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
-        historyBtn.click();
+    for (const s of KEYBOARD_SHORTCUTS) {
+      const match = s.key === 'Escape'
+        ? e.key === 'Escape'
+        : (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === s.key;
+      if (match) {
+        e.preventDefault();
+        s.handler();
+        return;
       }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
-      e.preventDefault();
-      if (!historySection.classList.contains('hidden')) {
-        loadHistory();
-      }
-    }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
     }
   });
 
@@ -439,18 +464,20 @@
     return body;
   }
 
+  const SCORE_THRESHOLDS = { low: 0.33, medium: 0.66 };
+
   function renderScoreSection(data) {
     const score = data.over_engineered_score;
     const pct = Math.round(score * 100);
     scoreProgress.value = pct;
     scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
+      score < SCORE_THRESHOLDS.low ? 'progress-success' :
+      score < SCORE_THRESHOLDS.medium ? 'progress-warning' :
       'progress-error'
     );
     scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
+      score < SCORE_THRESHOLDS.low ? 'prompt is fairly optimal' :
+      score < SCORE_THRESHOLDS.medium ? 'some redundancy detected' :
       'prompt is over-engineered'
     );
   }
@@ -471,6 +498,20 @@
         </li>`
       ).join('');
     }
+  }
+
+  /**
+   * Render analysis result to DOM. SRP: single place for all result display logic.
+   */
+  function renderAnalysisResult(data, durationSec) {
+    renderScoreSection(data);
+    overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
+    improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
+    lastAnalysisData = data;
+    renderComponentsSection(data);
+    resultsEl.classList.remove('hidden');
+    statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
+    statusEl.className = 'text-sm text-base-content/70';
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -505,16 +546,8 @@
         throw new Error(data.detail || 'Analysis failed');
       }
 
-      renderScoreSection(data);
-      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
-      improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
-      lastAnalysisData = data;
-      renderComponentsSection(data);
-
-      resultsEl.classList.remove('hidden');
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
-      statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
-      statusEl.className = 'text-sm text-base-content/70';
+      renderAnalysisResult(data, durationSec);
     } catch (err) {
       statusEl.textContent = err.message || 'Error';
       statusEl.className = 'text-sm text-error';
