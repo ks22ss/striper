@@ -41,6 +41,7 @@
   const clearFormBtn = document.getElementById('clear-form-btn');
   const copyReportBtn = document.getElementById('copy-report-btn');
   const downloadJsonBtn = document.getElementById('download-json-btn');
+  const retryBtn = document.getElementById('retry-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
 
@@ -479,6 +480,7 @@
     if (!prompt) return;
 
     submitBtn.disabled = true;
+    if (retryBtn) retryBtn.classList.add('hidden');
     statusEl.textContent = 'Analyzing...';
     statusEl.className = 'text-sm text-primary';
     resultsEl.classList.add('hidden');
@@ -518,9 +520,16 @@
     } catch (err) {
       statusEl.textContent = err.message || 'Error';
       statusEl.className = 'text-sm text-error';
+      if (retryBtn) {
+        retryBtn.classList.remove('hidden');
+      }
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => form.requestSubmit());
   }
 
   form.addEventListener('submit', handleAnalyzeSubmit);
