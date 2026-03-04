@@ -212,6 +212,15 @@ def test_ui_includes_over_engineered_explanation_section():
     assert "Over-engineered areas" in r.text
 
 
+def test_ui_includes_analyze_form_for_draft_restore():
+    """UI includes prompt and input fields for auto-save draft (localStorage)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert 'id="prompt"' in r.text
+    assert 'id="input"' in r.text
+    assert "app.js" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
