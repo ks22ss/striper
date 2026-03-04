@@ -12,6 +12,7 @@
   <style>
     body { font-family: 'Outfit', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
+    #back-to-top-btn.visible { opacity: 1; pointer-events: auto; }
   </style>
 </head>
 <body class="min-h-screen bg-base-100 text-base-content">
@@ -173,6 +174,8 @@
     </section>
     </section>
   </div>
+
+  <button type="button" class="btn btn-circle btn-primary fixed bottom-6 right-6 opacity-0 pointer-events-none transition-opacity duration-300 z-50 shadow-lg" id="back-to-top-btn" title="Back to top" aria-label="Back to top">↑</button>
 
   <script src="/static/app.js" defer></script>
 </body>

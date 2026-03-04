@@ -212,6 +212,14 @@ def test_ui_includes_over_engineered_explanation_section():
     assert "Over-engineered areas" in r.text
 
 
+def test_ui_includes_back_to_top_button():
+    """UI includes back-to-top floating button."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "back-to-top-btn" in r.text
+    assert "Back to top" in r.text or "aria-label" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

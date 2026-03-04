@@ -43,6 +43,7 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const backToTopBtn = document.getElementById('back-to-top-btn');
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -205,6 +206,23 @@
 
   window.addEventListener('hashchange', route);
   route();
+
+  const BACK_TO_TOP_THRESHOLD = 300;
+  function updateBackToTopVisibility() {
+    if (backToTopBtn) {
+      if (window.scrollY > BACK_TO_TOP_THRESHOLD) {
+        backToTopBtn.classList.add('visible');
+      } else {
+        backToTopBtn.classList.remove('visible');
+      }
+    }
+  }
+  window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+  if (backToTopBtn) {
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 
   async function submitAuthForm(endpoint, payload, errorEl, defaultError, btnEl, loadingText) {
     clearFormError(errorEl);
@@ -512,6 +530,7 @@
       renderComponentsSection(data);
 
       resultsEl.classList.remove('hidden');
+      resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
       statusEl.className = 'text-sm text-base-content/70';
