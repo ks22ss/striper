@@ -43,6 +43,7 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const retryBtn = document.getElementById('retry-btn');
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -64,6 +65,7 @@
     resultsEl.classList.add('hidden');
     statusEl.textContent = '';
     statusEl.className = 'text-sm text-base-content/70';
+    if (retryBtn) retryBtn.classList.add('hidden');
     updatePromptCount();
     updateInputCount();
     promptInput.focus();
@@ -479,6 +481,7 @@
     if (!prompt) return;
 
     submitBtn.disabled = true;
+    if (retryBtn) retryBtn.classList.add('hidden');
     statusEl.textContent = 'Analyzing...';
     statusEl.className = 'text-sm text-primary';
     resultsEl.classList.add('hidden');
@@ -512,16 +515,22 @@
       renderComponentsSection(data);
 
       resultsEl.classList.remove('hidden');
+      if (retryBtn) retryBtn.classList.add('hidden');
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
       statusEl.className = 'text-sm text-base-content/70';
     } catch (err) {
       statusEl.textContent = err.message || 'Error';
       statusEl.className = 'text-sm text-error';
+      if (retryBtn) retryBtn.classList.remove('hidden');
     } finally {
       submitBtn.disabled = false;
     }
   }
 
   form.addEventListener('submit', handleAnalyzeSubmit);
+
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => form.requestSubmit());
+  }
 })();

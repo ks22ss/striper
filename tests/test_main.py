@@ -196,6 +196,14 @@ def test_ui_includes_export_history_button():
     assert "Export history" in r.text
 
 
+def test_ui_includes_retry_button():
+    """UI includes Retry button for re-running failed analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "retry-btn" in r.text
+    assert "Retry" in r.text
+
+
 def test_ui_includes_reload_history_keyboard_shortcut():
     """UI includes Ctrl+Shift+R shortcut hint for reloading history."""
     r = client.get("/")
