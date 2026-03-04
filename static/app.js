@@ -43,6 +43,9 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptLengthWarningEl = document.getElementById('prompt-length-warning');
+
+  const PROMPT_LENGTH_WARNING_THRESHOLD = 4000;
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -81,6 +84,14 @@
 
   function updatePromptCount() {
     updateCharWordCount(promptInput, promptCountEl);
+    if (promptLengthWarningEl) {
+      const len = promptInput.value.length;
+      if (len >= PROMPT_LENGTH_WARNING_THRESHOLD) {
+        promptLengthWarningEl.classList.remove('hidden');
+      } else {
+        promptLengthWarningEl.classList.add('hidden');
+      }
+    }
   }
 
   function updateInputCount() {

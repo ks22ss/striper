@@ -85,6 +85,14 @@ def test_ui_includes_prompt_length_indicator():
     assert "chars" in r.text and "words" in r.text
 
 
+def test_ui_includes_prompt_length_warning_element():
+    """UI includes prompt length warning element for long prompts."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-length-warning" in r.text
+    assert "Long prompt" in r.text or "truncate" in r.text
+
+
 def test_ui_includes_copy_report_button():
     """UI includes Copy report button for full analysis."""
     r = client.get("/")
