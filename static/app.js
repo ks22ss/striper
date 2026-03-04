@@ -53,8 +53,22 @@
     return escapeHtml(s).replace(/"/g, '&quot;');
   }
 
+  const SCORE_THRESHOLDS = { LOW: 0.33, HIGH: 0.66 };
+
   function formatCharWordCount(chars, words) {
     return chars + ' chars, ' + words + ' words';
+  }
+
+  function downloadAsJson(filename, data) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function clearForm() {
@@ -318,15 +332,7 @@
         const res = await fetch('/history', { headers: getAuthHeaders() });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        downloadAsJson('striper-history.json', data);
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -391,15 +397,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson('striper-analysis.json', lastAnalysisData);
   });
 
   function handleCtrlEnter(e) {
@@ -442,15 +440,16 @@
   function renderScoreSection(data) {
     const score = data.over_engineered_score;
     const pct = Math.round(score * 100);
+    const { LOW, HIGH } = SCORE_THRESHOLDS;
     scoreProgress.value = pct;
     scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
+      score < LOW ? 'progress-success' :
+      score < HIGH ? 'progress-warning' :
       'progress-error'
     );
     scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
+      score < LOW ? 'prompt is fairly optimal' :
+      score < HIGH ? 'some redundancy detected' :
       'prompt is over-engineered'
     );
   }
@@ -471,6 +470,15 @@
         </li>`
       ).join('');
     }
+  }
+
+  function renderAnalysisResult(data) {
+    renderScoreSection(data);
+    overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
+    improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
+    lastAnalysisData = data;
+    renderComponentsSection(data);
+    resultsEl.classList.remove('hidden');
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -505,13 +513,7 @@
         throw new Error(data.detail || 'Analysis failed');
       }
 
-      renderScoreSection(data);
-      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
-      improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
-      lastAnalysisData = data;
-      renderComponentsSection(data);
-
-      resultsEl.classList.remove('hidden');
+      renderAnalysisResult(data);
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
       statusEl.className = 'text-sm text-base-content/70';
