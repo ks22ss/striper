@@ -485,6 +485,7 @@
     resultsEl.classList.remove('hidden');
     statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
     statusEl.className = 'text-sm text-base-content/70';
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -530,4 +531,26 @@
   }
 
   form.addEventListener('submit', handleAnalyzeSubmit);
+
+  const backToTopBtn = document.getElementById('back-to-top-btn');
+  const SCROLL_SHOW_THRESHOLD = 300;
+
+  function updateBackToTopVisibility() {
+    if (!backToTopBtn) return;
+    const onAppPage = !appPage.classList.contains('hidden');
+    const scrolled = window.scrollY > SCROLL_SHOW_THRESHOLD;
+    const shouldShow = onAppPage && scrolled;
+    if (shouldShow) {
+      backToTopBtn.classList.remove('opacity-0', 'pointer-events-none');
+    } else {
+      backToTopBtn.classList.add('opacity-0', 'pointer-events-none');
+    }
+  }
+
+  if (backToTopBtn) {
+    window.addEventListener('scroll', updateBackToTopVisibility, { passive: true });
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 })();
