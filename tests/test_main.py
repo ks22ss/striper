@@ -118,6 +118,13 @@ def test_ui_includes_download_json_button():
     assert "Download JSON" in r.text
 
 
+def test_ui_includes_results_section():
+    """UI includes results section (scroll target after analysis)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert 'id="results"' in r.text
+
+
 def test_ui_includes_input_length_indicator():
     """UI includes input field length (chars/words) indicator."""
     r = client.get("/")
