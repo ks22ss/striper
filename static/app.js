@@ -43,6 +43,8 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const shortcutsHelpBtn = document.getElementById('shortcuts-help-btn');
+  const shortcutsModal = document.getElementById('shortcuts-modal');
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -413,7 +415,17 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
+  if (shortcutsHelpBtn && shortcutsModal) {
+    shortcutsHelpBtn.addEventListener('click', () => {
+      shortcutsModal.showModal();
+    });
+  }
+
   document.addEventListener('keydown', (e) => {
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !appPage.classList.contains('hidden')) {
+      e.preventDefault();
+      if (shortcutsModal) shortcutsModal.showModal();
+    }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
       e.preventDefault();
       if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {

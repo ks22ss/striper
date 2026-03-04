@@ -93,6 +93,16 @@ def test_ui_includes_copy_report_button():
     assert "Copy report" in r.text
 
 
+def test_ui_includes_shortcuts_help():
+    """UI includes keyboard shortcuts help button and modal."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "shortcuts-help-btn" in r.text
+    assert "shortcuts-modal" in r.text
+    assert "Keyboard shortcuts" in r.text
+    assert "Ctrl" in r.text and "Enter" in r.text
+
+
 def test_ui_includes_theme_toggle():
     """UI includes theme toggle button for light/dark/system mode."""
     r = client.get("/")
