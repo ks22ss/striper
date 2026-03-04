@@ -86,11 +86,12 @@ def test_ui_includes_prompt_length_indicator():
 
 
 def test_ui_includes_copy_report_button():
-    """UI includes Copy report button for full analysis."""
+    """UI includes Copy report button with Ctrl+Shift+C shortcut hint."""
     r = client.get("/")
     assert r.status_code == 200
     assert "copy-report-btn" in r.text
     assert "Copy report" in r.text
+    assert "Ctrl+Shift+C" in r.text
 
 
 def test_ui_includes_theme_toggle():
@@ -217,6 +218,13 @@ def test_ui_includes_over_engineered_explanation_section():
     assert r.status_code == 200
     assert "over-engineered-explanation" in r.text
     assert "Over-engineered areas" in r.text
+
+
+def test_ui_includes_results_section_for_scroll_target():
+    """UI includes results section (id=results) for smooth scroll after analysis."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert 'id="results"' in r.text
 
 
 def test_analyze_unauthorized():
