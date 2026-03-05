@@ -124,6 +124,16 @@ def test_ui_includes_elements(substrings):
         assert s in r.text, f"Expected '{s}' in UI"
 
 
+def test_ui_includes_shortcuts_help_modal():
+    """UI includes keyboard shortcuts help modal and ? button."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "shortcuts-help-btn" in r.text
+    assert "shortcuts-dialog" in r.text
+    assert "Keyboard shortcuts" in r.text
+    assert "Ctrl" in r.text and "Enter" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
