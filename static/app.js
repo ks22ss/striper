@@ -123,6 +123,16 @@
 
   const SCORE_THRESHOLDS = { optimal: 0.33, warning: 0.66 };
 
+  function getScoreClass(score) {
+    const { optimal, warning } = SCORE_THRESHOLDS;
+    return score < optimal ? 'progress-success' : score < warning ? 'progress-warning' : 'progress-error';
+  }
+
+  function getScoreLabel(score) {
+    const { optimal, warning } = SCORE_THRESHOLDS;
+    return score < optimal ? 'prompt is fairly optimal' : score < warning ? 'some redundancy detected' : 'prompt is over-engineered';
+  }
+
   function showFormError(el, msg) {
     el.textContent = msg;
     el.classList.remove('hidden');
@@ -414,24 +424,34 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
-  document.addEventListener('keydown', (e) => {
+  const KEYBOARD_SHORTCUTS = {
+    'Ctrl+Shift+H': () => {
+      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) historyBtn.click();
+    },
+    'Ctrl+Shift+R': () => {
+      if (!historySection.classList.contains('hidden')) loadHistory();
+    },
+    Escape: () => {
+      if (!historySection.classList.contains('hidden')) {
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+      }
+    },
+  };
+
+  function handleKeyboardShortcuts(e) {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
       e.preventDefault();
-      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
-        historyBtn.click();
-      }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+      KEYBOARD_SHORTCUTS['Ctrl+Shift+H']();
+    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
       e.preventDefault();
-      if (!historySection.classList.contains('hidden')) {
-        loadHistory();
-      }
+      KEYBOARD_SHORTCUTS['Ctrl+Shift+R']();
+    } else if (e.key === 'Escape') {
+      KEYBOARD_SHORTCUTS.Escape();
     }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
-    }
-  });
+  }
+
+  document.addEventListener('keydown', handleKeyboardShortcuts);
 
   function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
     const body = { prompt };
@@ -443,18 +463,9 @@
   function renderScoreSection(data) {
     const score = data.over_engineered_score;
     const pct = Math.round(score * 100);
-    const { optimal, warning } = SCORE_THRESHOLDS;
     scoreProgress.value = pct;
-    scoreProgress.className = 'progress w-full h-2 ' + (
-      score < optimal ? 'progress-success' :
-      score < warning ? 'progress-warning' :
-      'progress-error'
-    );
-    scoreLabel.textContent = pct + '% – ' + (
-      score < optimal ? 'prompt is fairly optimal' :
-      score < warning ? 'some redundancy detected' :
-      'prompt is over-engineered'
-    );
+    scoreProgress.className = 'progress w-full h-2 ' + getScoreClass(score);
+    scoreLabel.textContent = pct + '% – ' + getScoreLabel(score);
   }
 
   function renderComponentsSection(data) {
