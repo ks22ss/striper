@@ -71,6 +71,7 @@
         <p class="text-base-content/70 text-sm mt-1">Analyze prompts for over-engineering using the Stripe method. Paste your prompt below to get a score and an improved version.</p>
       </div>
       <div id="auth-section" class="flex items-center gap-2">
+        <button type="button" class="btn btn-ghost btn-sm btn-square" id="shortcuts-help-btn" title="Keyboard shortcuts (?)" aria-label="Show shortcuts">?</button>
         <button type="button" class="btn btn-ghost btn-sm btn-square" id="theme-toggle" title="Toggle light/dark/system theme" aria-label="Toggle theme">🌙</button>
         <span class="text-sm text-base-content/70" id="user-info"></span>
         <button type="button" class="btn btn-ghost btn-sm" id="history-btn" title="History (Ctrl+Shift+H)">History</button>
@@ -166,6 +167,29 @@
     </section>
     </section>
   </div>
+
+  <!-- Keyboard shortcuts help modal -->
+  <dialog id="shortcuts-modal" class="modal">
+    <div class="modal-box max-w-md">
+      <h3 class="font-semibold text-lg mb-4">Keyboard shortcuts</h3>
+      <ul class="space-y-2 text-sm">
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd> + <kbd class="kbd kbd-sm">Enter</kbd> — Submit analyze form</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd> + <kbd class="kbd kbd-sm">Shift</kbd> + <kbd class="kbd kbd-sm">H</kbd> — Open history</li>
+        <li><kbd class="kbd kbd-sm">Ctrl</kbd> + <kbd class="kbd kbd-sm">Shift</kbd> + <kbd class="kbd kbd-sm">R</kbd> — Reload history</li>
+        <li><kbd class="kbd kbd-sm">Esc</kbd> — Close history panel</li>
+        <li><kbd class="kbd kbd-sm">?</kbd> — Show this help</li>
+      </ul>
+      <p class="text-xs text-base-content/60 mt-4">On Mac, use <kbd class="kbd kbd-xs">⌘</kbd> instead of Ctrl.</p>
+      <div class="modal-action">
+        <form method="dialog">
+          <button type="submit" class="btn btn-primary btn-sm">Close</button>
+        </form>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit">close</button>
+    </form>
+  </dialog>
 
   <script src="/static/app.js" defer></script>
 </body>

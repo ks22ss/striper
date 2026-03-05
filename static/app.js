@@ -22,6 +22,8 @@
   const loginErrorEl = document.getElementById('login-error');
   const registerErrorEl = document.getElementById('register-error');
   const themeToggle = document.getElementById('theme-toggle');
+  const shortcutsHelpBtn = document.getElementById('shortcuts-help-btn');
+  const shortcutsModal = document.getElementById('shortcuts-modal');
   const loginForm = document.getElementById('login-form');
   const registerForm = document.getElementById('register-form');
   const form = document.getElementById('analyze-form');
@@ -407,7 +409,23 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
+  function openShortcutsModal() {
+    if (shortcutsModal) shortcutsModal.showModal();
+  }
+
+  if (shortcutsHelpBtn) {
+    shortcutsHelpBtn.addEventListener('click', openShortcutsModal);
+  }
+
   document.addEventListener('keydown', (e) => {
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const inInput = document.activeElement && document.activeElement.matches('input, textarea');
+      if (!inInput && appPage && !appPage.classList.contains('hidden')) {
+        e.preventDefault();
+        openShortcutsModal();
+      }
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
       e.preventDefault();
       if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
