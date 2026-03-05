@@ -41,6 +41,7 @@
   const clearFormBtn = document.getElementById('clear-form-btn');
   const copyReportBtn = document.getElementById('copy-report-btn');
   const downloadJsonBtn = document.getElementById('download-json-btn');
+  const retryBtn = document.getElementById('retry-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
 
@@ -478,6 +479,7 @@
     const prompt = promptInput.value.trim();
     if (!prompt) return;
 
+    if (retryBtn) retryBtn.classList.add('hidden');
     submitBtn.disabled = true;
     statusEl.textContent = 'Analyzing...';
     statusEl.className = 'text-sm text-primary';
@@ -512,15 +514,26 @@
       renderComponentsSection(data);
 
       resultsEl.classList.remove('hidden');
+      resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       const durationSec = ((Date.now() - startTime) / 1000).toFixed(1);
       statusEl.textContent = `Done · Analyzed in ${durationSec}s`;
       statusEl.className = 'text-sm text-base-content/70';
     } catch (err) {
       statusEl.textContent = err.message || 'Error';
       statusEl.className = 'text-sm text-error';
+      if (retryBtn) {
+        retryBtn.classList.remove('hidden');
+      }
     } finally {
       submitBtn.disabled = false;
     }
+  }
+
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => {
+      retryBtn.classList.add('hidden');
+      form.requestSubmit();
+    });
   }
 
   form.addEventListener('submit', handleAnalyzeSubmit);

@@ -133,6 +133,14 @@ def test_ui_includes_clear_form_button():
     assert "Clear" in r.text
 
 
+def test_ui_includes_retry_button():
+    """UI includes Retry button (shown on analysis error)."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "retry-btn" in r.text
+    assert "Retry" in r.text
+
+
 def test_ui_includes_landing_page():
     """UI includes landing page with Get started, Login and Register CTAs."""
     r = client.get("/")
