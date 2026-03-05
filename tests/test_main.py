@@ -202,6 +202,14 @@ def test_ui_includes_reload_history_keyboard_shortcut():
     assert "Ctrl+Shift+R" in r.text
 
 
+def test_ui_includes_prompt_length_warning():
+    """UI includes prompt length warning for short prompts."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-length-warning" in r.text
+    assert "short" in r.text or "detail" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})

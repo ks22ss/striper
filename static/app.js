@@ -42,6 +42,10 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptLengthWarningEl = document.getElementById('prompt-length-warning');
+
+  const MIN_PROMPT_CHARS = 20;
+  const MIN_PROMPT_WORDS = 5;
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -80,6 +84,13 @@
 
   function updatePromptCount() {
     updateCharWordCount(promptInput, promptCountEl);
+    const text = promptInput.value.trim();
+    const chars = text.length;
+    const words = text ? text.split(/\s+/).length : 0;
+    const showWarning = chars > 0 && (chars < MIN_PROMPT_CHARS || words < MIN_PROMPT_WORDS);
+    if (promptLengthWarningEl) {
+      promptLengthWarningEl.classList.toggle('hidden', !showWarning);
+    }
   }
 
   function updateInputCount() {
@@ -98,6 +109,39 @@
     const h = { 'Content-Type': 'application/json' };
     if (token) h['Authorization'] = 'Bearer ' + token;
     return h;
+  }
+
+  /** Fetch history from API. Returns { items } or throws. DRY: used by loadHistory and export. */
+  async function fetchHistory() {
+    const res = await fetch('/history', { headers: getAuthHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+    return data;
+  }
+
+  /** Download JSON data as file. DRY: used by Download JSON and Export history. */
+  function downloadAsJson(data, filename) {
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const SCORE_THRESHOLDS = { optimal: 0.33, warning: 0.66 };
+
+  function getScoreClass(score) {
+    const { optimal, warning } = SCORE_THRESHOLDS;
+    return score < optimal ? 'progress-success' : score < warning ? 'progress-warning' : 'progress-error';
+  }
+
+  function getScoreLabel(score) {
+    const { optimal, warning } = SCORE_THRESHOLDS;
+    return score < optimal ? 'prompt is fairly optimal' : score < warning ? 'some redundancy detected' : 'prompt is over-engineered';
   }
 
   function showFormError(el, msg) {
@@ -268,22 +312,24 @@
 
   logoutBtn.addEventListener('click', () => { setLoggedOut(); });
 
+  function renderHistoryItem(item) {
+    const preview = item.prompt.length > 100 ? item.prompt.slice(0, 100) + '…' : item.prompt;
+    const score = Math.round(item.over_engineered_score * 100);
+    return `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
+      <p class="font-mono text-sm mb-2">${escapeHtml(preview)}</p>
+      <p class="text-xs text-base-content/60">Score: ${score}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
+    </li>`;
+  }
+
   async function loadHistory() {
     analyzeSection.classList.add('hidden');
     historySection.classList.remove('hidden');
     historyListEl.innerHTML = '<li class="text-base-content/70">Loading...</li>';
     try {
-      const res = await fetch('/history', { headers: getAuthHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to load history');
+      const data = await fetchHistory();
       historyListEl.innerHTML = data.items.length === 0
         ? '<li class="text-base-content/70">No history yet.</li>'
-        : data.items.map(item =>
-            `<li class="card bg-base-200 border border-base-300 p-4 cursor-pointer hover:bg-base-300 transition-colors history-item" data-prompt="${escapeAttr(item.prompt)}" title="Click to re-analyze">
-              <p class="font-mono text-sm mb-2">${escapeHtml(item.prompt.slice(0, 100))}${item.prompt.length > 100 ? '…' : ''}</p>
-              <p class="text-xs text-base-content/60">Score: ${Math.round(item.over_engineered_score * 100)}% · ${item.created_at} · <span class="text-primary">Click to re-analyze</span></p>
-            </li>`
-          ).join('');
+        : data.items.map(renderHistoryItem).join('');
       document.querySelectorAll('.history-item').forEach(el => {
         el.addEventListener('click', () => {
           const prompt = el.getAttribute('data-prompt');
@@ -314,18 +360,8 @@
       exportHistoryError.textContent = '';
       exportHistoryError.classList.add('hidden');
       try {
-        const res = await fetch('/history', { headers: getAuthHeaders() });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || 'Failed to load history');
-        const blob = new Blob([JSON.stringify(data, null, 2)], {
-          type: 'application/json',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'striper-history.json';
-        a.click();
-        URL.revokeObjectURL(url);
+        const data = await fetchHistory();
+        downloadAsJson(data, 'striper-history.json');
       } catch (err) {
         exportHistoryError.textContent = err.message || 'Export failed';
         exportHistoryError.classList.remove('hidden');
@@ -385,15 +421,7 @@
 
   downloadJsonBtn.addEventListener('click', () => {
     if (!lastAnalysisData) return;
-    const blob = new Blob([JSON.stringify(lastAnalysisData, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'striper-analysis.json';
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadAsJson(lastAnalysisData, 'striper-analysis.json');
   });
 
   function handleCtrlEnter(e) {
@@ -407,24 +435,34 @@
   promptInput.addEventListener('keydown', handleCtrlEnter);
   inputField.addEventListener('keydown', handleCtrlEnter);
 
-  document.addEventListener('keydown', (e) => {
+  const KEYBOARD_SHORTCUTS = {
+    'Ctrl+Shift+H': () => {
+      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) historyBtn.click();
+    },
+    'Ctrl+Shift+R': () => {
+      if (!historySection.classList.contains('hidden')) loadHistory();
+    },
+    Escape: () => {
+      if (!historySection.classList.contains('hidden')) {
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+      }
+    },
+  };
+
+  function handleKeyboardShortcuts(e) {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
       e.preventDefault();
-      if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
-        historyBtn.click();
-      }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
+      KEYBOARD_SHORTCUTS['Ctrl+Shift+H']();
+    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'R') {
       e.preventDefault();
-      if (!historySection.classList.contains('hidden')) {
-        loadHistory();
-      }
+      KEYBOARD_SHORTCUTS['Ctrl+Shift+R']();
+    } else if (e.key === 'Escape') {
+      KEYBOARD_SHORTCUTS.Escape();
     }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
-    }
-  });
+  }
+
+  document.addEventListener('keydown', handleKeyboardShortcuts);
 
   function buildAnalyzeRequestBody(prompt, inputText, apiKey) {
     const body = { prompt };
@@ -437,16 +475,8 @@
     const score = data.over_engineered_score;
     const pct = Math.round(score * 100);
     scoreProgress.value = pct;
-    scoreProgress.className = 'progress w-full h-2 ' + (
-      score < 0.33 ? 'progress-success' :
-      score < 0.66 ? 'progress-warning' :
-      'progress-error'
-    );
-    scoreLabel.textContent = pct + '% – ' + (
-      score < 0.33 ? 'prompt is fairly optimal' :
-      score < 0.66 ? 'some redundancy detected' :
-      'prompt is over-engineered'
-    );
+    scoreProgress.className = 'progress w-full h-2 ' + getScoreClass(score);
+    scoreLabel.textContent = pct + '% – ' + getScoreLabel(score);
   }
 
   function renderComponentsSection(data) {
