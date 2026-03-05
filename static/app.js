@@ -203,6 +203,12 @@
     applyTheme(next);
   });
 
+  const shortcutsBtn = document.getElementById('shortcuts-btn');
+  const shortcutsModal = document.getElementById('shortcuts-modal');
+  if (shortcutsBtn && shortcutsModal) {
+    shortcutsBtn.addEventListener('click', () => shortcutsModal.showModal());
+  }
+
   window.addEventListener('hashchange', route);
   route();
 
@@ -414,6 +420,13 @@
   inputField.addEventListener('keydown', handleCtrlEnter);
 
   document.addEventListener('keydown', (e) => {
+    if (e.key === '?' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+      if (shortcutsModal && shortcutsModal.open) {
+        shortcutsModal.close();
+      } else if (shortcutsBtn && !appPage.classList.contains('hidden')) {
+        shortcutsModal?.showModal();
+      }
+    }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
       e.preventDefault();
       if (localStorage.getItem(AUTH_KEY) && !appPage.classList.contains('hidden')) {
@@ -426,9 +439,13 @@
         loadHistory();
       }
     }
-    if (e.key === 'Escape' && !historySection.classList.contains('hidden')) {
-      historySection.classList.add('hidden');
-      analyzeSection.classList.remove('hidden');
+    if (e.key === 'Escape') {
+      if (shortcutsModal?.open) {
+        shortcutsModal.close();
+      } else if (!historySection.classList.contains('hidden')) {
+        historySection.classList.add('hidden');
+        analyzeSection.classList.remove('hidden');
+      }
     }
   });
 

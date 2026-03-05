@@ -102,6 +102,16 @@ def test_ui_includes_theme_toggle():
     assert "system" in r.text
 
 
+def test_ui_includes_shortcuts_help_modal():
+    """UI includes keyboard shortcuts help modal and trigger button."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "shortcuts-btn" in r.text
+    assert "shortcuts-modal" in r.text
+    assert "Keyboard shortcuts" in r.text
+    assert "Ctrl" in r.text or "Enter" in r.text
+
+
 def test_ui_includes_use_improved_button():
     """UI includes Use as prompt button for iterative refinement."""
     r = client.get("/")
