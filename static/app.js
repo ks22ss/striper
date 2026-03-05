@@ -42,6 +42,10 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptLengthWarningEl = document.getElementById('prompt-length-warning');
+
+  const MIN_PROMPT_CHARS = 20;
+  const MIN_PROMPT_WORDS = 5;
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -80,6 +84,13 @@
 
   function updatePromptCount() {
     updateCharWordCount(promptInput, promptCountEl);
+    const text = promptInput.value.trim();
+    const chars = text.length;
+    const words = text ? text.split(/\s+/).length : 0;
+    const showWarning = chars > 0 && (chars < MIN_PROMPT_CHARS || words < MIN_PROMPT_WORDS);
+    if (promptLengthWarningEl) {
+      promptLengthWarningEl.classList.toggle('hidden', !showWarning);
+    }
   }
 
   function updateInputCount() {
