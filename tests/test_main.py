@@ -133,6 +133,15 @@ def test_ui_includes_clear_form_button():
     assert "Clear" in r.text
 
 
+def test_ui_includes_prompt_templates():
+    """UI includes prompt template dropdown for quick start."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-template" in r.text
+    assert "Prompt template" in r.text
+    assert "Summarize document" in r.text
+
+
 def test_ui_includes_landing_page():
     """UI includes landing page with Get started, Login and Register CTAs."""
     r = client.get("/")

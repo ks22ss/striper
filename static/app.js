@@ -9,6 +9,13 @@
   const USER_KEY = 'striper_user';
   const THEME_KEY = 'striper_theme';
 
+  const PROMPT_TEMPLATES = {
+    summarize: 'You are a helpful assistant. Summarize the following document concisely. Preserve key facts and main ideas.',
+    'code-review': 'You are a senior developer. Review the code below. Focus on correctness, readability, and best practices. Be concise.',
+    support: 'You are a friendly customer support agent. Answer the user\'s question helpfully and professionally. If you don\'t know, say so.',
+    json: 'You are a helpful assistant. Always respond with valid JSON only. No markdown, no extra text.',
+  };
+
   const landingPage = document.getElementById('landing-page');
   const loginPage = document.getElementById('login-page');
   const registerPage = document.getElementById('register-page');
@@ -27,6 +34,7 @@
   const form = document.getElementById('analyze-form');
   const apiKeyInput = document.getElementById('api-key');
   const promptInput = document.getElementById('prompt');
+  const promptTemplateSelect = document.getElementById('prompt-template');
   const inputField = document.getElementById('input');
   const submitBtn = document.getElementById('submit-btn');
   const statusEl = document.getElementById('status');
@@ -61,6 +69,7 @@
     promptInput.value = '';
     inputField.value = '';
     apiKeyInput.value = '';
+    if (promptTemplateSelect) promptTemplateSelect.value = '';
     resultsEl.classList.add('hidden');
     statusEl.textContent = '';
     statusEl.className = 'text-sm text-base-content/70';
@@ -91,6 +100,16 @@
   promptInput.addEventListener('paste', () => setTimeout(updatePromptCount, 0));
   inputField.addEventListener('input', updateInputCount);
   inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
+  if (promptTemplateSelect) {
+    promptTemplateSelect.addEventListener('change', () => {
+      const val = promptTemplateSelect.value;
+      if (val && PROMPT_TEMPLATES[val]) {
+        promptInput.value = PROMPT_TEMPLATES[val];
+        updatePromptCount();
+        promptInput.focus();
+      }
+    });
+  }
   updatePromptCount();
   updateInputCount();
 
