@@ -123,6 +123,14 @@ def test_ui_includes_input_length_indicator():
     assert "input-count" in r.text
 
 
+def test_ui_includes_prompt_length_warning():
+    """UI includes prompt length warning for long prompts."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-length-warning" in r.text
+    assert "Long prompts" in r.text or "longer" in r.text
+
+
 def test_ui_includes_clear_form_button():
     """UI includes Clear button to reset form fields."""
     r = client.get("/")
