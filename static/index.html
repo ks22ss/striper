@@ -92,6 +92,17 @@
         placeholder="sk-..."
         autocomplete="off"
       />
+      <label for="prompt-template" class="label mt-4">
+        <span class="label-text font-medium">Prompt template</span>
+        <span class="label-text-alt text-base-content/60">Optional – quick start</span>
+      </label>
+      <select id="prompt-template" class="select select-bordered w-full max-w-xs">
+        <option value="">— Select a template —</option>
+        <option value="summarize">Summarize document</option>
+        <option value="code-review">Code review assistant</option>
+        <option value="support">Customer support</option>
+        <option value="json">JSON output</option>
+      </select>
       <label for="prompt" class="label mt-4">
         <span class="label-text font-medium">Your prompt</span>
         <span class="label-text-alt text-base-content/60" id="prompt-count">0 chars, 0 words</span>
@@ -127,6 +138,13 @@
           <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered score</h3>
           <progress id="score-progress" class="progress w-full h-2" value="0" max="100"></progress>
           <p class="text-sm text-base-content/70 mt-2" id="score-label">0% – prompt is optimal</p>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 border border-base-300 mb-4">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered areas</h3>
+          <div class="text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="over-engineered-explanation"></div>
         </div>
       </div>
 

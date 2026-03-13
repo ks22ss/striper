@@ -24,6 +24,7 @@ async def _fake_get_current_user():
 def _mock_analysis_result(
     over_engineered_score: float = 0.0,
     improved_prompt: str = "",
+    over_engineered_explanation: str = "",
     components_removed: list | None = None,
     components_kept: list | None = None,
     total_components: int | None = None,
@@ -35,6 +36,7 @@ def _mock_analysis_result(
     return {
         "over_engineered_score": over_engineered_score,
         "improved_prompt": improved_prompt,
+        "over_engineered_explanation": over_engineered_explanation,
         "components_removed": removed,
         "components_kept": kept,
         "total_components": total,
@@ -131,6 +133,15 @@ def test_ui_includes_clear_form_button():
     assert "Clear" in r.text
 
 
+def test_ui_includes_prompt_templates():
+    """UI includes prompt template dropdown for quick start."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "prompt-template" in r.text
+    assert "Prompt template" in r.text
+    assert "Summarize document" in r.text
+
+
 def test_ui_includes_landing_page():
     """UI includes landing page with Get started, Login and Register CTAs."""
     r = client.get("/")
@@ -202,6 +213,14 @@ def test_ui_includes_reload_history_keyboard_shortcut():
     assert "Ctrl+Shift+R" in r.text
 
 
+def test_ui_includes_over_engineered_explanation_section():
+    """UI includes over-engineered areas explanation section."""
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "over-engineered-explanation" in r.text
+    assert "Over-engineered areas" in r.text
+
+
 def test_analyze_unauthorized():
     """Analyze endpoint requires authentication."""
     r = client.post("/analyze", json={"prompt": "Hello world."})
@@ -216,17 +235,18 @@ def test_analyze_requires_prompt():
 
 
 def test_analyze_success():
-    """Analyze endpoint returns result when stripe analysis succeeds."""
+    """Analyze endpoint returns result when AI analysis succeeds."""
     mock_result = _mock_analysis_result(
         over_engineered_score=0.25,
         improved_prompt="Be concise.",
+        over_engineered_explanation="Bullet points instruction is redundant.",
         components_removed=["Always use bullet points."],
         components_kept=["Be concise."],
         total_components=2,
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result),
+            patch("app.main.run_ai_analysis", return_value=mock_result),
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Be concise. Always use bullet points."})
@@ -234,6 +254,7 @@ def test_analyze_success():
         data = r.json()
         assert data["over_engineered_score"] == 0.25
         assert data["improved_prompt"] == "Be concise."
+        assert data["over_engineered_explanation"] == "Bullet points instruction is redundant."
         assert "components_removed" in data
         assert "components_kept" in data
 
@@ -359,7 +380,7 @@ def test_analyze_with_optional_input():
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.run_ai_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
         ):
             r = client.post(
@@ -386,7 +407,7 @@ def test_analyze_with_api_key_in_request():
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.run_ai_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
         ):
             r = client.post(
@@ -406,7 +427,7 @@ def test_analyze_empty_api_key_treated_as_none():
     )
     with with_fake_user():
         with (
-            patch("app.main.run_stripe_analysis", return_value=mock_result) as mock_run,
+            patch("app.main.run_ai_analysis", return_value=mock_result) as mock_run,
             patch("app.main.add_prompt_history"),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "   "})
@@ -421,7 +442,7 @@ def test_analyze_invalid_api_key_returns_503():
     resp.headers = {}
     with with_fake_user():
         with patch(
-            "app.main.run_stripe_analysis",
+            "app.main.run_ai_analysis",
             side_effect=AuthenticationError("Invalid key", response=resp, body=None),
         ):
             r = client.post("/analyze", json={"prompt": "Test.", "api_key": "sk-invalid"})
