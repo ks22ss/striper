@@ -33,6 +33,7 @@
   const resultsEl = document.getElementById('results');
   const scoreProgress = document.getElementById('score-progress');
   const scoreLabel = document.getElementById('score-label');
+  const overEngineeredExplanationEl = document.getElementById('over-engineered-explanation');
   const improvedPromptEl = document.getElementById('improved-prompt');
   const componentsEl = document.getElementById('components');
   const copyImprovedBtn = document.getElementById('copy-improved-btn');
@@ -42,6 +43,18 @@
   const downloadJsonBtn = document.getElementById('download-json-btn');
   const promptCountEl = document.getElementById('prompt-count');
   const inputCountEl = document.getElementById('input-count');
+  const promptTemplatesEl = document.getElementById('prompt-templates');
+
+  const PROMPT_TEMPLATES = {
+    'customer-support':
+      'You are a customer support agent. Be helpful and concise. Always use bullet points. Never use markdown. Respond in under 100 words. End with "Is there anything else I can help with?"',
+    'code-review':
+      'You are a senior software engineer. Review the code for bugs, security issues, and style. Provide: 1) Summary. 2) Critical issues. 3) Suggestions. Use bullet points. Be concise. Output plain text only.',
+    summarization:
+      'You are a summarization expert. Summarize the text in 3-5 sentences. Use professional language. Do not include opinions. Output plain text only. Never use markdown.',
+    'creative-writing':
+      'You are a creative writer. Write engaging, vivid prose. Use varied sentence structure. Include sensory details. Avoid clichés. Keep paragraphs short. Output in plain text.',
+  };
 
   function escapeHtml(s) {
     const div = document.createElement('div');
@@ -60,6 +73,7 @@
     promptInput.value = '';
     inputField.value = '';
     apiKeyInput.value = '';
+    if (promptTemplatesEl) promptTemplatesEl.value = '';
     resultsEl.classList.add('hidden');
     statusEl.textContent = '';
     statusEl.className = 'text-sm text-base-content/70';
@@ -92,6 +106,17 @@
   inputField.addEventListener('paste', () => setTimeout(updateInputCount, 0));
   updatePromptCount();
   updateInputCount();
+
+  if (promptTemplatesEl) {
+    promptTemplatesEl.addEventListener('change', () => {
+      const id = promptTemplatesEl.value;
+      if (id && PROMPT_TEMPLATES[id]) {
+        promptInput.value = PROMPT_TEMPLATES[id];
+        updatePromptCount();
+        promptInput.focus();
+      }
+    });
+  }
 
   function getAuthHeaders() {
     const token = localStorage.getItem(AUTH_KEY);
@@ -362,11 +387,15 @@
   function buildReportText(data) {
     if (!data) return '';
     const score = Math.round((data.over_engineered_score || 0) * 100);
+    const explanation = data.over_engineered_explanation || '';
     const improved = data.improved_prompt || '(unchanged)';
     const kept = (data.components_kept || []).map((c) => '  - ' + c).join('\n');
     const removed = (data.components_removed || []).map((c) => '  - ' + c).join('\n');
-    return [
+    const parts = [
       'Over-engineered score: ' + score + '%',
+      '',
+      'Over-engineered areas:',
+      explanation || '  (none)',
       '',
       'Improved prompt:',
       improved,
@@ -376,7 +405,8 @@
       '',
       'Components removed:',
       removed || '  (none)',
-    ].join('\n');
+    ];
+    return parts.join('\n');
   }
 
   copyReportBtn.addEventListener('click', () =>
@@ -453,12 +483,18 @@
     const items = [];
     (data.components_kept || []).forEach(c => { items.push({ text: c, type: 'kept' }); });
     (data.components_removed || []).forEach(c => { items.push({ text: c, type: 'removed' }); });
-    componentsEl.innerHTML = items.map(({ text, type }) =>
-      `<li class="flex items-start gap-2 py-3 text-sm">
-        <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
-        <span>${escapeHtml(text)}</span>
-      </li>`
-    ).join('');
+    const componentsCard = componentsEl.closest('.card');
+    if (items.length === 0 && componentsCard) {
+      componentsCard.classList.add('hidden');
+    } else if (componentsCard) {
+      componentsCard.classList.remove('hidden');
+      componentsEl.innerHTML = items.map(({ text, type }) =>
+        `<li class="flex items-start gap-2 py-3 text-sm">
+          <span class="badge badge-sm shrink-0 ${type === 'kept' ? 'badge-success' : 'badge-error'}">${type}</span>
+          <span>${escapeHtml(text)}</span>
+        </li>`
+      ).join('');
+    }
   }
 
   async function handleAnalyzeSubmit(e) {
@@ -494,6 +530,7 @@
       }
 
       renderScoreSection(data);
+      overEngineeredExplanationEl.textContent = data.over_engineered_explanation || '(none)';
       improvedPromptEl.textContent = data.improved_prompt || '(unchanged)';
       lastAnalysisData = data;
       renderComponentsSection(data);

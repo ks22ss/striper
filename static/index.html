@@ -96,6 +96,13 @@
         <span class="label-text font-medium">Your prompt</span>
         <span class="label-text-alt text-base-content/60" id="prompt-count">0 chars, 0 words</span>
       </label>
+      <select id="prompt-templates" class="select select-bordered select-sm w-full max-w-xs mb-2" title="Load a preset prompt template">
+        <option value="">Load template (optional)</option>
+        <option value="customer-support">Customer support</option>
+        <option value="code-review">Code review</option>
+        <option value="summarization">Summarization</option>
+        <option value="creative-writing">Creative writing</option>
+      </select>
       <textarea
         id="prompt"
         name="prompt"
@@ -127,6 +134,13 @@
           <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered score</h3>
           <progress id="score-progress" class="progress w-full h-2" value="0" max="100"></progress>
           <p class="text-sm text-base-content/70 mt-2" id="score-label">0% – prompt is optimal</p>
+        </div>
+      </div>
+
+      <div class="card bg-base-200 border border-base-300 mb-4">
+        <div class="card-body p-5">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-base-content/60 mb-3">Over-engineered areas</h3>
+          <div class="text-sm whitespace-pre-wrap break-words p-4 bg-base-100 rounded-lg border border-base-300" id="over-engineered-explanation"></div>
         </div>
       </div>
 
